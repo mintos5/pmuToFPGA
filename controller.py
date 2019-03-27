@@ -4,8 +4,7 @@ from structs.device import DeviceConf
 
 def test_01():
     whaat = analyzer.analyze_file("data/pms_example.cpp")
-    print(whaat)
-    generator.get_levels(whaat, DeviceConf())
+    generator.generate_verilog2(whaat, DeviceConf())
 
 
 def test_02():

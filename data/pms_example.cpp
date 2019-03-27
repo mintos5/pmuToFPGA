@@ -24,12 +24,12 @@ SC_MODULE(Sys){
 		SetLevel(DIFF_LEVEL(2), 2.1V, 100MHz);
 		PD_1 = PD    (    NORMAL    , OFF); //power states assignment to PD_1
 		PD_2 = PD (   NORMAL, DIFF_LEVEL(1), HOLD   );
-		PD_3 = PD(NORMAL, OFF_RET);
+		PD_3 = PD(DIFF_LEVEL(2), OFF_RET);
 		PD_1.AddComponent("COUNT"); //component assignment to PD_1
 		PD_1.AddComponent("BCD");
 		PD_2.AddComponent("LFSR");
 		PD_3.AddComponent("BR");
-		on_mode = PM(NORMAL, DIFF_LEVEL(1), NORMAL); //power mode specification – contains active states of power domains
+		on_mode = PM(NORMAL, DIFF_LEVEL(1), DIFF_LEVEL(2)); //power mode specification – contains active states of power domains
 		off_mode = PM  (OFF, HOLD, OFF_RET);
 		POWER_MODE = on_mode; //current power mode initialization
 		LFSR.clk(clk1); //communications mapping

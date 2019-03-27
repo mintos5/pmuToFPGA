@@ -109,14 +109,25 @@ def dict_to_obj(our_dict):
 
 
 class FreqSet:
-    def __init__(self, name, volt_freq, pll=False, main_freq=False, zero=False):
+    def __init__(self, name, volt_freq, pll=False, main_freq=True, zero=False, divide_from_pll=False):
         self.name = name
         self.pll = pll
         self.main_freq_bool = main_freq
         self.zero = zero
+        self.divide_from_pll = divide_from_pll
         self.voltage = volt_freq[0]
         self.frequency = volt_freq[1]
+        self.position = 0
 
+        self.fout = 0
+        self.divr = 0
+        self.divf = 0
+        self.divq = 0
+        self.divide_number = -1
+        self.divide_number_size = 0
 
     def __str__(self):
+        return self.name + " " + str(self.frequency)
+
+    def __repr__(self):
         return self.name + " " + str(self.frequency)

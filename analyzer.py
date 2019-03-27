@@ -62,7 +62,8 @@ def analyze_module(module_string, pms_name):
     symbol_comma = pp.Literal(",").suppress()
     symbol_variable = pp.Word(pp.alphanums + '_')
     symbol_variable_more = pp.OneOrMore(symbol_comma + symbol_variable)
-    symbol_func = pp.Combine(pp.Word(pp.alphanums + '_') + pp.Optional(pp.Word("(") + pp.Word(pp.nums) + pp.Word(")")))
+    symbol_func = pp.Combine(
+        pp.Word(pp.alphanums + '_') + pp.Optional(pp.Literal("(") + pp.Word(pp.nums) + pp.Literal(")")))
     symbol_func_more = pp.OneOrMore(symbol_comma + symbol_func)
     symbol_parentheses1 = pp.Literal("(").suppress()
     symbol_parentheses2 = pp.Literal(")").suppress()
