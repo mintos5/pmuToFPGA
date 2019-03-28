@@ -53,7 +53,7 @@ SB_PLL40_CORE #(.FEEDBACK_PATH("SIMPLE"),
                   .DIVR(${make_bits(4,level.divr)}),
                   .DIVF(${make_bits(7,level.divf)}),
                   .DIVQ(${make_bits(3,level.divq)}),
-                  .FILTER_RANGE(3'b001),
+                  .FILTER_RANGE(3'b001)
                  ) uut (
                          .REFERENCECLK(clk),
                          .PLLOUTCORE(pll_clk),

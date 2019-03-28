@@ -145,10 +145,10 @@ def analyze_module(module_string, pms_name):
                 # add virtual power_domain
                 print("found signal with component without power_domain")
                 pd0_components.append(component)
-                pms_structure.add_component(component, "PD0")
-                pms_structure.add_signal(connected_signal, "PD0", component)
+                pms_structure.add_component(component, "PD_GEN")
+                pms_structure.add_signal(connected_signal, "PD_GEN", component)
     if pd0_components:
-        pms_structure.add_power_domain("PD0", pd0_components, ["NORMAL"])
+        pms_structure.add_power_domain("PD_GEN", pd0_components, ["NORMAL"])
     # power modes
     parser = symbol_variable + symbol_equals + pp.Literal("PM").suppress() + symbol_parentheses1 + symbol_func + \
         pp.Optional(symbol_func_more) + symbol_parentheses2
@@ -159,6 +159,9 @@ def analyze_module(module_string, pms_name):
         for pd in founded_pd:
             pms_structure.add_power_mode(power_mode[0], pd, power_mode[counter])
             counter += 1
+        if pd0_components:
+            # if PD_0 exists we need add to power mode
+            pms_structure.add_power_mode(power_mode[0], "PD_GEN", "NORMAL")
     print(pms_structure)
 
     return pms_structure

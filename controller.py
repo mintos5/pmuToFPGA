@@ -3,8 +3,8 @@ import generator
 from structs.device import DeviceConf
 
 def test_01():
-    whaat = analyzer.analyze_file("data/pms_example.cpp")
-    generator.generate_verilog2(whaat, DeviceConf())
+    whaat = analyzer.analyze_file("data/pms_test.cpp")
+    generator.generate_verilog(whaat, DeviceConf())
 
 
 def test_02():

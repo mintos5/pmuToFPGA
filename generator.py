@@ -5,8 +5,13 @@ from mako.template import Template
 from mako.runtime import Context
 from mako.lookup import TemplateLookup
 from io import StringIO
+import re
 import math
 
+
+def _insertChar(mystring, position, chartoinsert ):
+    mystring = mystring[:position] + chartoinsert + mystring[position:]
+    return mystring
 
 def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
     # check main_freq
@@ -105,13 +110,14 @@ def get_levels(pms_structure: PMSConf, device: DeviceConf):
     return levels_list
 
 
-def test_generate(configuration):
+def generate_pmu(configuration):
     mylookup = TemplateLookup(directories=['data'])
     mytemplate = mylookup.get_template("pmu_inner.mako")
     buf = StringIO()
     ctx = Context(buf, **configuration)
     mytemplate.render_context(ctx)
-    print(buf.getvalue())
+    return buf
+    #print(buf.getvalue())
     # sem bude spracovanie kam to pojde....
 
 
@@ -166,7 +172,7 @@ def get_combined_levels(levels, pds):
     return combined_levels
 
 
-def generate_verilog2(pms_structure: PMSConf, device: DeviceConf):
+def generate_verilog(pms_structure: PMSConf, device: DeviceConf):
     # tu uz budu len ciste data...
     processed_levels = get_levels(pms_structure, device)
     processed_levels_bitsize = int(len(processed_levels) - 1).bit_length()
@@ -213,76 +219,94 @@ def generate_verilog2(pms_structure: PMSConf, device: DeviceConf):
     processed_data["all_freq"] = device.all_freq
     processed_data["pmu_type"] = device.pmu_type
 
-    test_generate(processed_data)
-
-def generate_verilog():
-    mytemplate = Template(filename='data/cross_bus_template.mako')
-    buf = StringIO()
-    ctx = Context(buf, cross_bus="cross_bus_1", clock_a="hodiny_a", reset_a="RESET", flag_a="in_a", busy_out_a="out_a",
-                  clock_b="hodiny_b", reset_b="RESET_B", flag_out_b="out_b", bus_in_a="BUS_A", bus_out_b="BUS_B")
-    mytemplate.render_context(ctx)
-    print(buf.getvalue())
+    pmu_out = generate_pmu(processed_data)
+    print(pmu_out.getvalue())
+    f = open("data/top.v", "r")
+    apply_pmu(f, pms_structure, device)
 
 
-def test_struct():
-    test_string = """
-{
-  "__class__": "PMSConf",
-  "__module__": "structs.pms",
-  "name": "pms_conf_0",
-  "levels": {
-    "normal": [
-      1222.22,
-      122.3
-    ],
-    "low_power": [
-      122,
-      55
-    ]
-  },
-  "power_domains": {
-    "ahoj": [
-      "component1",
-      "component2",
-      "component2"
-    ]
-  },
-  "signals": {
-    "signal1": {
-      "ahoj": [
-        "comp1",
-        "comp2"
-      ]
-    }
-  },
-  "components": {
-    "component1": "ahoj",
-    "component2": "ahoj"
-  },
-  "power_modes": {
-    "on_mode": [
-      [
-        "ahoj_pd",
-        "level"
-      ],
-      [
-        "ahoj_pd2",
-        "level223i32"
-      ]
-    ]
-  }
-}
-"""
-    test = PMSConf()
-    test.add_level("normal", 1222.22, 122.3)
-    test.add_level("low_power", 122, 55)
-    test.add_power_domain("ahoj", ["component1", "component2", "component2"])
-    test.add_component("component1", "ahoj")
-    test.add_component("component2", "ahoj")
-    test.add_signal("signal1", "ahoj", ["comp1", "comp2"])
-    test.add_power_mode("on_mode", "ahoj_pd", "level")
-    test.add_power_mode("on_mode", "ahoj_pd2", "level223")
-    print(test)
-
-    newObject = PMSConf.from_json(test_string)
-    print(newObject)
+def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
+    # include pmu:, bufferi, atd...
+    # vlozit ich do kodu....
+    top_string = top.read()
+    top.close()
+    # add includes:
+    includes ='''`include "power/pmu.v"
+`include "power/cross_bus.v"
+`include "power/cross_flag.v"
+'''
+    top_string = _insertChar(top_string, 0, includes)
+    # find the begin of the module
+    module_regex = re.compile(r'module top.*?\(.*?\);', re.IGNORECASE | re.DOTALL)
+    module = re.search(module_regex, top_string)
+    if module:
+        print(module.end())
+        # generate list of power_domains, to have correct number
+        power_domains = list(pms_structure.power_domains.keys())
+        # find signals with multiple power_domains
+        for key, value in pms_structure.signals.items():
+            if len(value) > 1:
+                # find out type of signal
+                signal_regex = re.compile(r'wire \[(\d*):\d*\].*'+key+r'.*;', re.IGNORECASE)
+                signal_size = re.search(signal_regex, top_string)
+                print(signal_size.group())
+                sync_size = 0
+                if signal_size:
+                    sync_size = int(signal_size.group(1))
+                    print(signal_size.group(1))
+                # nahradime texty
+                counter = -1
+                first_pd = ""
+                for pd, components in value.items():
+                    counter += 1
+                    if counter == 0:
+                        # ignore first device
+                        first_pd = pd
+                        continue
+                    # create sync_component
+                    if sync_size > 1:
+                        # create bus
+                        mylookup = TemplateLookup(directories=['data'])
+                        mytemplate = mylookup.get_template("cross_bus_template.mako")
+                        context_data = {}
+                        context_data["bus_size"] = sync_size
+                        context_data["cross_bus"] = key + "_" + first_pd + "_" + pd
+                        pd_position = -1
+                        if first_pd in power_domains:
+                            pd_position = power_domains.index(first_pd)
+                        context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
+                        if pd in power_domains:
+                            pd_position = power_domains.index(pd)
+                        context_data["clock_b"] = "power_domain_clk_" + str(pd_position)
+                        context_data["bus_in_a"] = key
+                        context_data["bus_out_b"] = key + "_synced_" + str(counter)
+                        buf = StringIO()
+                        ctx = Context(buf, **context_data)
+                        mytemplate.render_context(ctx)
+                        top_string = _insertChar(top_string, module.end(), buf.getvalue())
+                    else:
+                        # just flag
+                        mylookup = TemplateLookup(directories=['data'])
+                        mytemplate = mylookup.get_template("cross_flag_template.mako")
+                        context_data = {}
+                        context_data["cross_flag"] = key + "_" + first_pd + "_" + pd
+                        pd_position = -1
+                        if first_pd in power_domains:
+                            pd_position = power_domains.index(first_pd)
+                        context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
+                        if pd in power_domains:
+                            pd_position = power_domains.index(pd)
+                        context_data["clock_b"] = "power_domain_clk_" + str(pd_position)
+                        context_data["flag_a"] = key
+                        context_data["flag_out_b"] = key + "_synced_" + str(counter)
+                        buf = StringIO()
+                        ctx = Context(buf, **context_data)
+                        mytemplate.render_context(ctx)
+                        print(buf.getvalue())
+                    # loop through components and change output signal
+                    for component in components:
+                        component_regex = re.compile(r'(' + component + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
+                        test = re.search(component_regex, top_string)
+                        top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
+        print(top_string)
+    pass

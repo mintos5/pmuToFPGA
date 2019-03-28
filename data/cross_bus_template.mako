@@ -1,11 +1,14 @@
-BusAck_CrossDomain ${cross_bus}(
+
+BusAck_CrossDomain #(
+    .size(${bus_size})
+    ) ${cross_bus}(
 	.clkA(${clock_a}),
-	.rstA(${reset_a}),
-	.FlagIn_clkA(${flag_a}),
-	.Busy_clkA(${busy_out_a}),
+	.rstA(1'b0),
+	//.FlagIn_clkA(),
+	//.Busy_clkA(),
 	.clkB(${clock_b}),
-	.rstB(${reset_b}),
-	.FlagOut_clkB(${flag_out_b}),
+	.rstB(1'b0),
+	//.FlagOut_clkB(),
 	.BusIn(${bus_in_a}),
 	.BusOut(${bus_out_b})
 );
