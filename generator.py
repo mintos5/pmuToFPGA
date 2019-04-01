@@ -187,7 +187,7 @@ def generate_verilog(pms_structure: PMSConf, device: DeviceConf):
         processed_pd_bitsize = 1
     # array of tuples(number of freq for power_domain, number of bits for previous number, list of supported freq)
 
-    device.strict_freq = True
+    device.strict_freq = False
     device.all_freq = False
 
     processed_pm = get_power_modes(pms_structure, device, processed_levels)
@@ -249,9 +249,9 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                 # find out type of signal
                 signal_regex = re.compile(r'wire \[(\d*):\d*\].*'+key+r'.*;', re.IGNORECASE)
                 signal_size = re.search(signal_regex, top_string)
-                print(signal_size.group())
                 sync_size = 0
                 if signal_size:
+                    print(signal_size.group())
                     sync_size = int(signal_size.group(1))
                     print(signal_size.group(1))
                 # nahradime texty
@@ -305,7 +305,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         print(buf.getvalue())
                     # loop through components and change output signal
                     for component in components:
-                        component_regex = re.compile(r'(' + component + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
+                        component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
                         test = re.search(component_regex, top_string)
                         top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
         print(top_string)

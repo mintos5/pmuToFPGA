@@ -24,3 +24,4 @@ class DeviceConf:
         self.ice40_reconfiguration = True
         self.ice40_confs = [False, True, False, False]
         self.sync_control = False
+        self.accpeted_freq = 0

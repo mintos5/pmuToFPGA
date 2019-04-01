@@ -13,6 +13,8 @@ SC_MODULE(Sys){
 	lfsr LFSR; //instance LFSR of component lfsr
 	counter COUNT;
 	bcd_converter BCD;
+	cpuType cpu;
+	serialType ahoj, zasa, asd, RS232, askdj;
     /*
     asdasdasd
     asdasdasd
@@ -26,6 +28,7 @@ SC_MODULE(Sys){
 		PD_2 = PD (   NORMAL, DIFF_LEVEL(1), DIFF_LEVEL(2), HOLD   );
 		PD_1.AddComponent("cpu");
 		PD_2.AddComponent("RS232");
+		PD_2.AddComponent("LFSR");
 
 		cpu.nieco(cpu_dout);
 		RS232.nieco2(cpu_dout);
@@ -36,7 +39,7 @@ SC_MODULE(Sys){
 		LFSR.clk(clk1); //communications mapping
 		LFSR.data_out(s1);
 		COUNT.clk(clk);
-		//COUNT.data_in(s1);
+		COUNT.data_in(s1);
 		COUNT.data_out(s2);
 		BCD.clk(clk);
 		BCD.data_in(s2);

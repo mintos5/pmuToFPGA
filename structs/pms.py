@@ -19,17 +19,17 @@ class PMSConf:
     def add_power_domain(self, name, components, levels):
         self.power_domains[name] = (components, levels)
 
-    def add_signal(self, name, power_domain, component):
+    def add_signal(self, name, power_domain, component, component_map, component_type="UNKNOWN"):
         if name not in self.signals:
-            self.signals[name] = {power_domain: [component]}
+            self.signals[name] = {power_domain: [(component, component_map, component_type)]}
         else:
             if power_domain not in self.signals[name]:
-                self.signals[name][power_domain] = [component]
+                self.signals[name][power_domain] = [(component, component_map, component_type)]
             else:
-                self.signals[name][power_domain].append(component)
+                self.signals[name][power_domain].append((component, component_map, component_type))
 
-    def add_component(self, name, power_domain):
-        self.components[name] = power_domain
+    def add_component(self, name, power_domain, component_type):
+        self.components[name] = (power_domain, component_type)
 
     def add_power_mode(self, name, power_domain, level):
         if name not in self.power_modes:

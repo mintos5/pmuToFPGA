@@ -20,6 +20,10 @@ def comment_remover(text):
     return re.sub(pattern, replacer, text)
 
 
+def analyze_file_component(file_name, components_structure):
+    pass
+
+
 def analyze_file(file_name):
     # read and clean file_obj
     full_file = ""
@@ -55,9 +59,31 @@ def analyze_file(file_name):
     return pms
 
 
+def _get_component_type(name, components_structure, module_string):
+    block_regex = re.compile(r'^.*' + name + r'[ ,;].*$', re.IGNORECASE | re.MULTILINE)
+    regex_out = ""
+    for regex_match in block_regex.finditer(module_string):
+        print(regex_match)
+        regex_out = regex_match.group()
+        break
+
+    py_parser_out = "UNKNOWN_TYPE"
+    #todo return error if can not find the type of component
+    symbol_variable = pp.Word(pp.alphanums + '_')
+    for match in symbol_variable.scanString(regex_out):
+        py_parser_out = match[0][0]
+        break
+    components_structure[name] = {"type": py_parser_out, "signals": []}
+    return py_parser_out
+
+
 def analyze_module(module_string, pms_name):
+    # todo get includes to find all files, generate structure, that will track looking of all files
+    # todo check if check all_files or just includes
     # generate structure
     pms_structure = PMSConf(pms_name)
+    # generate helper structure for components
+    components_structure = {}
     # common symbols for parsing
     symbol_comma = pp.Literal(",").suppress()
     symbol_variable = pp.Word(pp.alphanums + '_')
@@ -116,7 +142,8 @@ def analyze_module(module_string, pms_name):
         print(power_domain_components)
         pms_structure.add_power_domain(pd, power_domain_components, power_domain_levels)
         for component in power_domain_components:
-            pms_structure.add_component(component, pd)
+            pms_structure.add_component(component, pd,
+                                            _get_component_type(component, components_structure, module_string))
 
     # find signals
     signal1 = pp.Literal("sc_signal<")
@@ -130,23 +157,32 @@ def analyze_module(module_string, pms_name):
         founded_signals.extend(match[0])
 
     component_name = pp.Word(pp.alphanums + '_')
-    component_function = pp.Literal(".").suppress() + pp.Word(pp.alphanums + '_').suppress() + symbol_parentheses1
+    component_function = pp.Literal(".").suppress() + pp.Word(pp.alphanums + '_') + symbol_parentheses1
     print("SIGNAL")
     # bind signals to components and power_domains
     pd0_components = []
     for signal in founded_signals:
-        parser = component_name + component_function + pp.Literal(signal) + symbol_parentheses2;
+        pd0_temp_components = []
+        parser = component_name + component_function + pp.Literal(signal) + symbol_parentheses2
+        signal_in_real_pd = False
         for match in parser.scanString(module_string):
             component = match[0][0]
-            connected_signal = match[0][1]
+            component_wire = match[0][1]
             if component in pms_structure.components:
-                pms_structure.add_signal(connected_signal, pms_structure.components[component], component)
+                pms_structure.add_signal(signal, pms_structure.components[component][0], component, component_wire)
+                components_structure[component]["signals"].append(component_wire)
+                signal_in_real_pd = True
             else:
                 # add virtual power_domain
-                print("found signal with component without power_domain")
-                pd0_components.append(component)
-                pms_structure.add_component(component, "PD_GEN")
-                pms_structure.add_signal(connected_signal, "PD_GEN", component)
+                print("found signal " + signal + " with component without power_domain")
+                pd0_temp_components.append((component, component_wire))
+        if signal_in_real_pd:
+            for comp in pd0_temp_components:
+                pd0_components.append(comp[0])
+                pms_structure.add_component(comp[0], "PD_GEN",
+                                            _get_component_type(comp[0], components_structure, module_string))
+                pms_structure.add_signal(signal, "PD_GEN", comp[0], comp[1])
+    # add power domain
     if pd0_components:
         pms_structure.add_power_domain("PD_GEN", pd0_components, ["NORMAL"])
     # power modes
