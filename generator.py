@@ -241,6 +241,29 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
     module = re.search(module_regex, top_string)
     if module:
         print(module.end())
+        # generate clock buffers
+        mylookup = TemplateLookup(directories=['data'])
+        if device.use_explicit_clock_buffers:
+            mytemplate = mylookup.get_template("global_buffer_template.mako")
+            context_data = {}
+            context_data["pmu_type"] = device.pmu_type
+            context_data["num_clocks"] = len(pms_structure.power_domains.items())
+            buf = StringIO()
+            ctx = Context(buf, **context_data)
+            mytemplate.render_context(ctx)
+            top_string = _insertChar(top_string, module.end(), buf.getvalue())
+
+        # generate PMU
+        mytemplate = mylookup.get_template("pmu_template.mako")
+        context_data = {}
+        context_data["pmu_type"] = device.pmu_type
+        context_data["num_clocks"] = len(pms_structure.power_domains.items())
+        buf = StringIO()
+        ctx = Context(buf, **context_data)
+        mytemplate.render_context(ctx)
+        top_string = _insertChar(top_string, module.end(), buf.getvalue())
+
+        pd_position = -1
         # generate list of power_domains, to have correct number
         power_domains = list(pms_structure.power_domains.keys())
         # find signals with multiple power_domains
@@ -286,7 +309,6 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                     # create sync_component
                     if sync_size > 1:
                         # create bus
-                        mylookup = TemplateLookup(directories=['data'])
                         mytemplate = mylookup.get_template("cross_bus_template.mako")
                         context_data = {}
                         context_data["bus_size"] = sync_size
@@ -294,10 +316,16 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         pd_position = -1
                         if producer_pd[0] in power_domains:
                             pd_position = power_domains.index(producer_pd[0])
-                        context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
+                        if device.use_explicit_clock_buffers:
+                            context_data["clock_a"] = "gb_pd_clk_" + str(pd_position)
+                        else:
+                            context_data["clock_a"] = "pd_clk_" + str(pd_position)
                         if pd in power_domains:
                             pd_position = power_domains.index(pd)
-                        context_data["clock_b"] = "power_domain_clk_" + str(pd_position)
+                        if device.use_explicit_clock_buffers:
+                            context_data["clock_b"] = "gb_pd_clk_" + str(pd_position)
+                        else:
+                            context_data["clock_b"] = "pd_clk_" + str(pd_position)
                         context_data["bus_in_a"] = key
                         context_data["bus_out_b"] = key + "_synced_" + str(counter)
                         buf = StringIO()
@@ -306,17 +334,22 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         top_string = _insertChar(top_string, module.end(), buf.getvalue())
                     else:
                         # just flag
-                        mylookup = TemplateLookup(directories=['data'])
                         mytemplate = mylookup.get_template("cross_flag_template.mako")
                         context_data = {}
                         context_data["cross_flag"] = key + "_" + producer_pd[0] + "_" + pd
                         pd_position = -1
                         if producer_pd[0] in power_domains:
                             pd_position = power_domains.index(producer_pd[0])
-                        context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
+                        if device.use_explicit_clock_buffers:
+                            context_data["clock_a"] = "gb_pd_clk_" + str(pd_position)
+                        else:
+                            context_data["clock_a"] = "pd_clk_" + str(pd_position)
                         if pd in power_domains:
                             pd_position = power_domains.index(pd)
-                        context_data["clock_b"] = "power_domain_clk_" + str(pd_position)
+                        if device.use_explicit_clock_buffers:
+                            context_data["clock_b"] = "gb_pd_clk_" + str(pd_position)
+                        else:
+                            context_data["clock_b"] = "pd_clk_" + str(pd_position)
                         context_data["flag_a"] = key
                         context_data["flag_out_b"] = key + "_synced_" + str(counter)
                         buf = StringIO()
