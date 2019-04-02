@@ -1,4 +1,5 @@
 from structs.pms import PMSConf
+from structs.pms import ComponentSet
 import re
 import pyparsing as pp
 import os
@@ -20,14 +21,65 @@ def comment_remover(text):
     return re.sub(pattern, replacer, text)
 
 
-def analyze_file_component(file_name, components_structure):
-    pass
+def analyze_file_component(file_folder, files_list, components_structure: {}):
+    full_file = ""
+    files_processed = {}
+    i = 0
+    while i < len(files_list):
+        file_name = files_list[i]
+        if file_name in files_processed:
+            i += 1
+            continue
+        try:
+            file_obj = open(file_folder + file_name, "r")
+        except IOError:
+            print("FILE does not exists")
+            files_processed[file_name] = True
+            i += 1
+            continue
+        with file_obj:
+            for line in file_obj:
+                if not line.isspace():
+                    full_file += line
+        # remove unnecessary comments
+        full_file = comment_remover(full_file)
+        # find other includes
+        files_list.extend(_find_includes(full_file))
+        # loop over components
+        for key, value in components_structure.items():
+            # do not process finished components
+            if value.done:
+                continue
+            component_type = value.type
+            component_signals = value.signals
+            block_regex = re.compile(r'SC_MODULE\(' + component_type + r'\)', re.IGNORECASE)
+            component_block =  block_regex.search(full_file)
+            if component_block:
+                # look for signals in this file
+                for component_signal, is_signal_in in component_signals.items():
+                    component_regex_in = re.compile(r'sc_in.*' + component_signal + r'[ ,;].*$', re.IGNORECASE | re.MULTILINE)
+                    component_regex_out = re.compile(r'sc_out.*' + component_signal + r'[ ,;].*$', re.IGNORECASE | re.MULTILINE)
+                    for regex_match in component_regex_in.finditer(full_file):
+                        print(regex_match)
+                        component_signals[component_signal] = True
+                        break
+                    for regex_match in component_regex_out.finditer(full_file):
+                        print(regex_match)
+                        component_signals[component_signal] = False
+                        break
+                    else:
+                        print("ERROR signal not found in component...")
+                # set the component as processed
+                value.done = True
+        # set component as done
+        files_processed[file_name] = True
+        i += 1
 
 
-def analyze_file(file_name):
+def analyze_file(file_folder, file_name):
     # read and clean file_obj
     full_file = ""
-    with open(file_name, "r") as file_obj:
+    with open(file_folder + file_name, "r") as file_obj:
         for line in file_obj:
             if not line.isspace():
                 full_file += line
@@ -54,7 +106,7 @@ def analyze_file(file_name):
             print(full_file[start_point:end_point + 1])
             pms_name = os.path.basename(file_name)
             pms_name = os.path.splitext(pms_name)[0]
-            pms = analyze_module(full_file[start_point:end_point + 1], pms_name)
+            pms = analyze_module(full_file[start_point:end_point + 1], pms_name, file_folder, _find_includes(full_file))
             break
     return pms
 
@@ -73,11 +125,20 @@ def _get_component_type(name, components_structure, module_string):
     for match in symbol_variable.scanString(regex_out):
         py_parser_out = match[0][0]
         break
-    components_structure[name] = {"type": py_parser_out, "signals": []}
+    components_structure[name] = ComponentSet(py_parser_out)
     return py_parser_out
 
 
-def analyze_module(module_string, pms_name):
+def _find_includes(file_string):
+    included_files = []
+    include_regex = re.compile(r'#include[ ]+"(.*)"', re.IGNORECASE | re.MULTILINE)
+    for regex_match in include_regex.finditer(file_string):
+        print(regex_match.group(1))
+        included_files.append(regex_match.group(1))
+    return included_files
+
+
+def analyze_module(module_string, pms_name, file_folder, include_files):
     # todo get includes to find all files, generate structure, that will track looking of all files
     # todo check if check all_files or just includes
     # generate structure
@@ -170,7 +231,7 @@ def analyze_module(module_string, pms_name):
             component_wire = match[0][1]
             if component in pms_structure.components:
                 pms_structure.add_signal(signal, pms_structure.components[component][0], component, component_wire)
-                components_structure[component]["signals"].append(component_wire)
+                components_structure[component].signals[component_wire] = True
                 signal_in_real_pd = True
             else:
                 # add virtual power_domain
@@ -182,6 +243,19 @@ def analyze_module(module_string, pms_name):
                 pms_structure.add_component(comp[0], "PD_GEN",
                                             _get_component_type(comp[0], components_structure, module_string))
                 pms_structure.add_signal(signal, "PD_GEN", comp[0], comp[1])
+                components_structure[comp[0]].signals[comp[1]] = True
+    # found out if signal is IN or OUT
+    analyze_file_component(file_folder, include_files, components_structure)
+    # update_signals from function
+    for signal, power_domain_dict in pms_structure.signals.items():
+        for pd, components in power_domain_dict.items():
+            print(pd)
+            print(components)
+            for component in components:
+                if components_structure[component[0]].signals[component[1]]:
+                    component[2] = "INPUT"
+                else:
+                    component[2] = "OUTPUT"
     # add power domain
     if pd0_components:
         pms_structure.add_power_domain("PD_GEN", pd0_components, ["NORMAL"])

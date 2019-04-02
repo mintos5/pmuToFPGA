@@ -255,14 +255,34 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                     sync_size = int(signal_size.group(1))
                     print(signal_size.group(1))
                 # nahradime texty
+                producer_pd = []
+                first_pd = None
+                for pd, components in value.items():
+                    if not first_pd:
+                        first_pd = pd
+                    for component in components:
+                        outputing_component = False
+                        if component[2] == "OUTPUT":
+                            outputing_component = True
+                        if outputing_component:
+                            producer_pd.append(pd)
+                if len(producer_pd) > 1:
+                    print("ERROR")
+                if len(producer_pd) <= 0:
+                    print("ERROR malo...")
+                    producer_pd.append(first_pd)
                 counter = -1
-                first_pd = ""
                 for pd, components in value.items():
                     counter += 1
-                    if counter == 0:
-                        # ignore first device
-                        first_pd = pd
+                    # do not generate for outputing components
+                    if pd in producer_pd:
                         continue
+                    # loop through components and change output signal
+                    for component in components:
+                        if component[2] == "INPUT" or component[2] == "UNKNOWN":
+                            component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
+                            test = re.search(component_regex, top_string)
+                            top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
                     # create sync_component
                     if sync_size > 1:
                         # create bus
@@ -270,10 +290,10 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         mytemplate = mylookup.get_template("cross_bus_template.mako")
                         context_data = {}
                         context_data["bus_size"] = sync_size
-                        context_data["cross_bus"] = key + "_" + first_pd + "_" + pd
+                        context_data["cross_bus"] = key + "_" + producer_pd[0] + "_" + pd
                         pd_position = -1
-                        if first_pd in power_domains:
-                            pd_position = power_domains.index(first_pd)
+                        if producer_pd[0] in power_domains:
+                            pd_position = power_domains.index(producer_pd[0])
                         context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
                         if pd in power_domains:
                             pd_position = power_domains.index(pd)
@@ -289,10 +309,10 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         mylookup = TemplateLookup(directories=['data'])
                         mytemplate = mylookup.get_template("cross_flag_template.mako")
                         context_data = {}
-                        context_data["cross_flag"] = key + "_" + first_pd + "_" + pd
+                        context_data["cross_flag"] = key + "_" + producer_pd[0] + "_" + pd
                         pd_position = -1
-                        if first_pd in power_domains:
-                            pd_position = power_domains.index(first_pd)
+                        if producer_pd[0] in power_domains:
+                            pd_position = power_domains.index(producer_pd[0])
                         context_data["clock_a"] = "power_domain_clk_" + str(pd_position)
                         if pd in power_domains:
                             pd_position = power_domains.index(pd)
@@ -302,11 +322,6 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         buf = StringIO()
                         ctx = Context(buf, **context_data)
                         mytemplate.render_context(ctx)
-                        print(buf.getvalue())
-                    # loop through components and change output signal
-                    for component in components:
-                        component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
-                        test = re.search(component_regex, top_string)
-                        top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
+                        top_string = _insertChar(top_string, module.end(), buf.getvalue())
         print(top_string)
     pass

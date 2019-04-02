@@ -1,5 +1,7 @@
 #include "systemc.h"
 #include  "pms.h"
+#include "cpu.h"
+
 SC_MODULE(Sys){
 	sc_in<bool> clk, clk1, ctrl; //input variables
 	sc_out<data> bcd_out; //output variable
