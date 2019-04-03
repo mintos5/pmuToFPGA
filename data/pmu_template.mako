@@ -2,14 +2,11 @@
 power_manager pmu(
 	//.clk(),
 	.reset(0'b),
-<%
-    from structs.device import PmuType
-%>\
-% if pmu_type == PmuType.LEVELS or pmu_type == PmuType.COMBINED:
+% if pmu_type == "LEVELS" or pmu_type == "COMBINED":
     //.change_level_flag(),
     //.change_level(),
 % endif
-% if pmu_type == PmuType.POWER_MODES or pmu_type == PmuType.COMBINED:
+% if pmu_type == "POWER_MODE" or pmu_type == "COMBINED":
     //.change_power_mode_flag(),
     //.change_power_mode(),
 % endif

@@ -13,17 +13,14 @@ ${size}'b${special_number}\
 </%def>\
 
 <%def name="make_control_input()">\
-<%
-    from structs.device import PmuType
-%>\
-    % if pmu_type == PmuType.LEVELS or pmu_type == PmuType.COMBINED:
+    % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
 <%
     levels_count = pds_bitsize + levels_bitsize
 %>\
     input change_level_flag
     input [${levels_count-1}:0] change_level,        // First ${pds_bitsize} bits select power_domain
     % endif
-    % if pmu_type == PmuType.POWER_MODES or pmu_type == PmuType.COMBINED:
+    % if pmu_type == "POWER_MODES" or pmu_type == "COMBINED":
     input change_power_mode_flag
         % if pms_bitsize == 1:
     input change_power_mode,        // Signal to change power_mode
@@ -231,27 +228,24 @@ ${make_tabs(tabs)}end
 
 
 <%def name="make_controller(tabs)">\
-<%
-    from structs.device import PmuType
-%>\
     % if strict_freq:
-        % if pmu_type == PmuType.LEVELS or pmu_type == PmuType.COMBINED:
+        % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
 ${make_tabs(tabs)}if (change_level_flag) begin
 ${make_strict_levels_controller(tabs+1)}\
 ${make_tabs(tabs)}end
         % endif
-        % if pmu_type == PmuType.POWER_MODES or pmu_type == PmuType.COMBINED:
+        % if pmu_type == "POWER_MODES" or pmu_type == "COMBINED":
 ${make_tabs(tabs)}if (change_power_mode_flag) begin
 ${make_strict_pms_controller(tabs+1)}\
 ${make_tabs(tabs)}end
         % endif
     % else:
-        % if pmu_type == PmuType.LEVELS or pmu_type == PmuType.COMBINED:
+        % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
 ${make_tabs(tabs)}if (change_level_flag) begin
 ${make_levels_controller(tabs+1)}\
 ${make_tabs(tabs)}end
         % endif
-        % if pmu_type == PmuType.POWER_MODES or pmu_type == PmuType.COMBINED:
+        % if pmu_type == "POWER_MODES" or pmu_type == "COMBINED":
 ${make_tabs(tabs)}if (change_power_mode_flag) begin
 ${make_pms_controller(tabs+1)}\
 ${make_tabs(tabs)}end

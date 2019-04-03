@@ -7,20 +7,23 @@ from mako.lookup import TemplateLookup
 from io import StringIO
 import re
 import math
+import logging
 
+logger = logging.getLogger(__name__)
 
-def _insertChar(mystring, position, chartoinsert ):
+def _insert_string(mystring, position, chartoinsert):
     mystring = mystring[:position] + chartoinsert + mystring[position:]
     return mystring
+
 
 def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
     # check main_freq
     if device.clk_freq < device.pll_clk_in_min or device.clk_freq > device.pll_clk_in_max:
-        print("ERROR")
+        logger.error("Input frequency is out of band, fall_backing to main_clock")
         return False
     else:
         if freq_setting.frequency < device.pll_clk_out_min or freq_setting.frequency > device.pll_clk_out_max:
-            print("ERROR")
+            logger.error("Output frequency is out of band, fall_backing to main_clock")
             return False
         else:
             # calculate the freq
@@ -55,15 +58,16 @@ def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
 
 def get_divide_specs(freq_setting: FreqSet, input_freq):
     if freq_setting.frequency > input_freq:
-        print("ERROR")
+        logger.error("Output frequency is too big, fall_backing to main_clock")
         return False
     else:
         quotient = input_freq/freq_setting.frequency
         # check if quotient is even
         if (quotient % 2) == 0:
-            print("OK")
+            logger.debug("quotient is OK")
         else:
-            print("ERROR")
+            logger.error("quotient is not OK")
+            # todo check if correct or just similar
             quotient -= 1
         divide_number = (quotient/2)-1
         freq_setting.main_freq_bool = False
@@ -110,25 +114,14 @@ def get_levels(pms_structure: PMSConf, device: DeviceConf):
     return levels_list
 
 
-def generate_pmu(configuration):
-    mylookup = TemplateLookup(directories=['data'])
-    mytemplate = mylookup.get_template("pmu_inner.mako")
-    buf = StringIO()
-    ctx = Context(buf, **configuration)
-    mytemplate.render_context(ctx)
-    return buf
-    #print(buf.getvalue())
-    # sem bude spracovanie kam to pojde....
-
-
 def get_power_domains(pms_structure: PMSConf, device: DeviceConf):
     processed_pd = []
     for key, value in pms_structure.power_domains.items():
-        print(value[1])
         freq_count = len(value[1])
         freq_count_size = int(freq_count-1).bit_length()
         if freq_count_size == 0:
             freq_count_size = 1
+        logger.debug("processed_pd append: %s", value[1])
         processed_pd.append((freq_count, freq_count_size, value[1]))
     return processed_pd
 
@@ -172,13 +165,12 @@ def get_combined_levels(levels, pds):
     return combined_levels
 
 
-def generate_verilog(pms_structure: PMSConf, device: DeviceConf):
-    # tu uz budu len ciste data...
+def generate_pmu_verilog(pms_structure: PMSConf, device: DeviceConf):
     processed_levels = get_levels(pms_structure, device)
     processed_levels_bitsize = int(len(processed_levels) - 1).bit_length()
     if processed_levels_bitsize == 0:
         processed_levels_bitsize = 1
-    print(processed_levels)
+    logger.debug("Processed levels: %s", processed_levels)
     # just array of FreqSet objects
 
     processed_pd = get_power_domains(pms_structure, device)
@@ -199,9 +191,6 @@ def generate_verilog(pms_structure: PMSConf, device: DeviceConf):
     combined_levels = get_combined_levels(processed_levels, processed_pd)
     # array of tuples(number of power_domain, his own position of level, global position of level)
 
-    #todo strict_frequencies
-    # zistit kolko freq, ma power domain
-    # toto je zle, je tam pocet freq a nie power domain....
     processed_data = {}
     processed_data["levels"] = processed_levels
     processed_data["levels_bitsize"] = processed_levels_bitsize
@@ -219,28 +208,26 @@ def generate_verilog(pms_structure: PMSConf, device: DeviceConf):
     processed_data["all_freq"] = device.all_freq
     processed_data["pmu_type"] = device.pmu_type
 
-    pmu_out = generate_pmu(processed_data)
-    print(pmu_out.getvalue())
-    f = open("data/top.v", "r")
-    apply_pmu(f, pms_structure, device)
+    mylookup = TemplateLookup(directories=['data'])
+    mytemplate = mylookup.get_template("pmu_inner.mako")
+    buf = StringIO()
+    ctx = Context(buf, **processed_data)
+    mytemplate.render_context(ctx)
+    return buf
 
 
 def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
-    # include pmu:, bufferi, atd...
-    # vlozit ich do kodu....
     top_string = top.read()
-    top.close()
     # add includes:
     includes ='''`include "power/pmu.v"
 `include "power/cross_bus.v"
 `include "power/cross_flag.v"
 '''
-    top_string = _insertChar(top_string, 0, includes)
+    top_string = _insert_string(top_string, 0, includes)
     # find the begin of the module
     module_regex = re.compile(r'module top.*?\(.*?\);', re.IGNORECASE | re.DOTALL)
     module = re.search(module_regex, top_string)
     if module:
-        print(module.end())
         # generate clock buffers
         mylookup = TemplateLookup(directories=['data'])
         if device.use_explicit_clock_buffers:
@@ -251,7 +238,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
             buf = StringIO()
             ctx = Context(buf, **context_data)
             mytemplate.render_context(ctx)
-            top_string = _insertChar(top_string, module.end(), buf.getvalue())
+            top_string = _insert_string(top_string, module.end(), buf.getvalue())
 
         # generate PMU
         mytemplate = mylookup.get_template("pmu_template.mako")
@@ -261,7 +248,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
         buf = StringIO()
         ctx = Context(buf, **context_data)
         mytemplate.render_context(ctx)
-        top_string = _insertChar(top_string, module.end(), buf.getvalue())
+        top_string = _insert_string(top_string, module.end(), buf.getvalue())
 
         pd_position = -1
         # generate list of power_domains, to have correct number
@@ -274,9 +261,8 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                 signal_size = re.search(signal_regex, top_string)
                 sync_size = 0
                 if signal_size:
-                    print(signal_size.group())
                     sync_size = int(signal_size.group(1))
-                    print(signal_size.group(1))
+                    logger.debug("Signal: %s is %d bit long", key, sync_size)
                 # nahradime texty
                 producer_pd = []
                 first_pd = None
@@ -290,10 +276,11 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         if outputing_component:
                             producer_pd.append(pd)
                 if len(producer_pd) > 1:
-                    print("ERROR")
+                    logger.warning("There are multiple output components in power_domain: %s", pd)
                 if len(producer_pd) <= 0:
-                    print("ERROR malo...")
+                    logger.warning("There are 0 output components in power_domains: %s ", pd)
                     producer_pd.append(first_pd)
+                    logger.debug("Fixing with first as outputing component")
                 counter = -1
                 for pd, components in value.items():
                     counter += 1
@@ -331,7 +318,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         buf = StringIO()
                         ctx = Context(buf, **context_data)
                         mytemplate.render_context(ctx)
-                        top_string = _insertChar(top_string, module.end(), buf.getvalue())
+                        top_string = _insert_string(top_string, module.end(), buf.getvalue())
                     else:
                         # just flag
                         mytemplate = mylookup.get_template("cross_flag_template.mako")
@@ -355,6 +342,5 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf):
                         buf = StringIO()
                         ctx = Context(buf, **context_data)
                         mytemplate.render_context(ctx)
-                        top_string = _insertChar(top_string, module.end(), buf.getvalue())
-        print(top_string)
-    pass
+                        top_string = _insert_string(top_string, module.end(), buf.getvalue())
+    return top_string

@@ -53,8 +53,8 @@ def _process_options(options):
     if options.template:
         template_file = options.template
     device_setting = None
-    if options.settings:
-        device_setting = options.settings
+    if options.device:
+        device_setting = options.device
     # what to do
     functions = ["analyze", "generate", "run", "create"]
     function_count = 0
@@ -67,13 +67,13 @@ def _process_options(options):
         logger.error("Can not do multiple functions at once, specify only one function option")
         sys.exit(1)
     if function == "analyze":
-        controller.analyze_test(input_file, output_file)
+        controller.analyze(input_file, output_file)
     elif function == "generate":
-        controller.generate_test(input_file, output_file, template_file, device_setting)
+        controller.generate(input_file, output_file, template_file, device_setting)
     elif function == "run":
-        controller.run_test(input_file, output_file, template_file, device_setting)
+        controller.run(input_file, output_file, template_file, device_setting)
     elif function == "create":
-        controller.create_test(output_file)
+        controller.create(output_file)
     else:
         if options.version:
             logger.info("Version: 0.0.1")
@@ -91,7 +91,7 @@ def main():
                       help="choose the template from which the verilog top code will be generated")
     parser.add_option("-o", "--output", dest="output",
                       help="choose the output directory [default: stdout]")
-    parser.add_option("-s", "--settings", dest="settings",
+    parser.add_option("-d", "--device", dest="device",
                       help="choose the json device config [default: auto_ice40]",)
     parser.add_option("-l", "--log", dest="log",
                       help="choose the log output [default: stdout]")
