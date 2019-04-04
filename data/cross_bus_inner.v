@@ -48,4 +48,4 @@ assign FlagOut_clkB = (SyncA_clkB[2] ^ SyncA_clkB[1]);
 assign Busy_clkA = FlagToggle_clkA ^ SyncB_clkA[1];
 assign BusOut = BusReg;
 
-endmodule : BusAck_CrossDomain
+endmodule

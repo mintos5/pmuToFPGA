@@ -4,11 +4,13 @@
 module tb_pmu;
 
     initial begin
-        $dumpfile("l80soc.vcd");
+        $dumpfile("pmu_tb.vcd");
         $dumpvars;
-        delay(50);
+        delay(500);
         pmu_changerSpeed = 1;
-        pmu_busSpeed = 8'b00000000;
+        pmu_busSpeed = 3'b101;
+        delay(1);
+        pmu_changerSpeed = 0;
         delay(800);
         $finish;
         //# 250E3 $finish;
@@ -20,24 +22,23 @@ module tb_pmu;
     reg clk2 = 0;
     always #2 clk2 = !clk2;
 
-    reg reset = 0;
     reg pmu_changerSpeed = 0;
-    reg [7:0] pmu_busSpeed = 8'b00000000;
-    output slow_clock1;
-    output slow_clock2;
-    output slow_clock3;
+    reg [2:0] pmu_busSpeed = 3'b101;
+    output pd_clk_0;
+    output pd_clk_1;
+    output pd_clk_2;
 
 
 
-    power_manager pmu (
-    .clk(clk2),
-    .pll_clk(clk),
-    .reset(reset),
-    .change(pmu_changerSpeed),
-    .change_vector(pmu_busSpeed),
-    .clock1(slow_clock1),
-    .clock2(slow_clock2),
-    .clock3(slow_clock3)
+    power_manager pmu(
+	.clk(clk),
+	.reset(1'b0),
+    .change_level_flag(pmu_changerSpeed),
+    .change_level(pmu_busSpeed),
+    //.change_power_mode_flag(),
+    //.change_power_mode(),
+    .power_domain_clk_0(pd_clk_0),
+    .power_domain_clk_1(pd_clk_1)
     );
 
     task delay(input integer N); begin
@@ -45,4 +46,4 @@ module tb_pmu;
     end endtask
 
 
-endmodule : tb_pmu
+endmodule

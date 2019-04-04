@@ -71,7 +71,7 @@ def get_divide_specs(freq_setting: FreqSet, input_freq):
             quotient -= 1
         divide_number = (quotient/2)-1
         freq_setting.main_freq_bool = False
-        freq_setting.divide_number = divide_number
+        freq_setting.divide_number = int(divide_number)
         freq_setting.divide_number_size = int(divide_number).bit_length()
         return True
 
@@ -178,9 +178,6 @@ def generate_pmu_verilog(pms_structure: PMSConf, device: DeviceConf):
     if processed_pd_bitsize == 0:
         processed_pd_bitsize = 1
     # array of tuples(number of freq for power_domain, number of bits for previous number, list of supported freq)
-
-    device.strict_freq = False
-    device.all_freq = False
 
     processed_pm = get_power_modes(pms_structure, device, processed_levels)
     processed_pm_bitsize = int(len(processed_pm) - 1).bit_length()

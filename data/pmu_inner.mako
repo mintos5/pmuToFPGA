@@ -51,3 +51,4 @@ ${pmu.make_counting(2,True)}
     end
 end
 % endif
+endmodule

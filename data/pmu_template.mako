@@ -1,7 +1,7 @@
 
 power_manager pmu(
 	//.clk(),
-	.reset(0'b),
+	.reset(1'b0),
 % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
     //.change_level_flag(),
     //.change_level(),
