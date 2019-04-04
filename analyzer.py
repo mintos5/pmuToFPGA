@@ -46,20 +46,23 @@ def analyze_file_component(file_folder, files_list, components_structure: {}):
             if component_block:
                 # look for signals in this file
                 for component_signal, is_signal_in in component_signals.items():
+                    port_found = False
                     component_regex_in = re.compile(r'sc_in.*' + component_signal + r'[ ,;].*$', re.IGNORECASE | re.MULTILINE)
                     component_regex_out = re.compile(r'sc_out.*' + component_signal + r'[ ,;].*$', re.IGNORECASE | re.MULTILINE)
                     for regex_match in component_regex_in.finditer(full_file):
-                        logger.debug("Signal %s is connected to component %s:%s as input", component_signal,
+                        port_found = True
+                        logger.debug("Port %s on component %s:%s is input", component_signal,
                                      component_type, key)
                         component_signals[component_signal] = True
                         break
                     for regex_match in component_regex_out.finditer(full_file):
-                        logger.debug("Signal %s is connected to component %s:%s as output", component_signal,
+                        port_found = True
+                        logger.debug("Port %s on component %s:%s is output", component_signal,
                                      component_type, key)
                         component_signals[component_signal] = False
                         break
-                    else:
-                        logger.warning("ERROR signal %s not found in component", component_signal)
+                    if not port_found:
+                        logger.warning("Port %s not found in component %s:%s", component_signal, component_type, key)
                 # set the component as processed
                 value.done = True
         # set component as done

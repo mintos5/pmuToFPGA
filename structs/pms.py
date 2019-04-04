@@ -2,13 +2,28 @@ import json
 
 
 class PMSConf:
-    def __init__(self, name="pms_conf_0", levels={}, power_domains={}, signals={}, components={}, power_modes={}):
+    def __init__(self, name="pms_conf_0", levels=None, power_domains=None, signals=None, components=None, power_modes=None):
         self.name = name
-        self.levels = levels
-        self.power_domains = power_domains
-        self.signals = signals
-        self.components = components
-        self.power_modes = power_modes
+        if levels is None:
+            self.levels = {}
+        else:
+            self.levels = levels
+        if power_domains is None:
+            self.power_domains = {}
+        else:
+            self.power_domains = power_domains
+        if signals is None:
+            self.signals = {}
+        else:
+            self.signals = signals
+        if components is None:
+            self.components = {}
+        else:
+            self.components = components
+        if power_modes is None:
+            self.power_modes = {}
+        else:
+            self.power_modes = power_modes
 
     def __str__(self):
         return self.to_json(indent=2)
@@ -134,7 +149,10 @@ class FreqSet:
 
 
 class ComponentSet:
-    def __init__(self, comp_type, done=False, signals={}):
+    def __init__(self, comp_type, done=False, signals=None):
         self.type = comp_type
         self.done = done
-        self.signals = signals
+        if signals is None:
+            self.signals = {}
+        else:
+            self.signals = signals

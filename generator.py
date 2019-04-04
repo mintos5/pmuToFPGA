@@ -137,7 +137,7 @@ def get_power_modes(pms_structure: PMSConf, device: DeviceConf, levels):
                     position = pms_structure.power_domains[pd[0]][1].index(pd[1])
                     processed_pd.append(position)
             else:
-                #find the position in levels
+                # find the position in levels
                 for level_num in range(len(levels)):
                     if levels[level_num].name == pd[1]:
                         position = level_num

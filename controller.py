@@ -146,12 +146,13 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
         data_folder = os.path.join(os.getcwd(), "data")
         _test_output_cp(os.path.join(data_folder, "cross_flag_inner.v"), output_file, "power")
         _test_output_cp(os.path.join(data_folder, "cross_bus_inner.v"), output_file, "power")
+        _test_output_cp(os.path.join(data_folder, "pmu_tb.v"), output_file, "power")
         # generate PMU
         sio = generator.generate_pmu_verilog(pms_structure, device_conf)
         if not output_file:
             logger.error("Missing output file [%s]", output_file)
         elif output_file is sys.stdout:
-            logging.info("PMU to stdout")
+            logger.info("PMU to stdout")
             _test_output(output_file, sio.getvalue())
         else:
             pmu_output_file = os.path.dirname(output_file)
