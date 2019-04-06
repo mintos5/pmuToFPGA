@@ -23,7 +23,7 @@ always @(posedge rstA or posedge clkA) begin
 	end
 end
 
-reg [2:0] SyncA_clkB;
+reg [2:0] SyncA_clkB = 3'b000;
 always @(posedge rstB or posedge clkB) begin
 	if (rstB) begin
 		//reset

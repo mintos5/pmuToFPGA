@@ -1,4 +1,18 @@
 
+% for number in range(num_clocks):
+wire pd_clk_${number};
+% endfor
+% if sync_control:
+    % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
+wire level_flag_synced;
+wire [${level_size-1}:0] level_synced;
+    % endif
+    % if pmu_type == "POWER_MODE" or pmu_type == "COMBINED":
+wire power_mode_flag_synced;
+wire [${power_mode_size-1}:0] power_mode_synced;
+    % endif
+% endif
+
 power_manager pmu(
 	//.clk(_PMU_CLOCK_),
 	.reset(1'b0),
@@ -28,18 +42,3 @@ power_manager pmu(
 % endfor
 
 );
-
-% if sync_control:
-    % if pmu_type == "LEVELS" or pmu_type == "COMBINED":
-wire level_flag_synced;
-wire level_synced;
-    % endif
-    % if pmu_type == "POWER_MODE" or pmu_type == "COMBINED":
-wire power_mode_flag_synced;
-wire power_mode_synced;
-    % endif
-% endif
-
-% for number in range(num_clocks):
-wire pd_clk_${number};
-% endfor

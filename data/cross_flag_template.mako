@@ -1,4 +1,7 @@
 
+% if generate_wires:
+wire ${flag_out_b};
+% endif
 FlagAck_CrossDomain ${cross_flag}(
 	.clkA(${clock_a}),
 	.rstA(1'b0),

@@ -1,4 +1,10 @@
 
+% if generate_wires:
+wire [${bus_size-1}:0] ${bus_out_b};
+    % if flag_out_b:
+wire ${flag_out_b};
+    % endif
+% endif
 % if notes:
 //${notes}
 % endif

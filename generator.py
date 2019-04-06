@@ -258,11 +258,33 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
 '''
     top_string = _insert_string(top_string, 0, includes)
     # find the begin of the module
-    module_regex = re.compile(r'module top.*?\(.*?\);', re.IGNORECASE | re.DOTALL)
+    module_regex = re.compile(r'module.*?\(.*?\);', re.IGNORECASE | re.DOTALL)
     module = re.search(module_regex, top_string)
+    top_addition = '''
+
+//---------------------------------------------------------------------------------------
+// Start of auto generated components PMU + synchronizers
+//---------------------------------------------------------------------------------------
+    '''
+    best_position = 0
     if module:
-        # generate clock buffers
+        best_position = module.end()
+        # generate PMU
         mylookup = TemplateLookup(directories=['data'])
+        mytemplate = mylookup.get_template("pmu_template.mako")
+        context_data = {}
+        context_data["pmu_type"] = device.pmu_type
+        context_data["num_clocks"] = len(pms_structure.power_domains.items())
+        context_data["sync_control"] = device.sync_control
+        context_data["level_size"] = pmu_info.pds_bitsize + pmu_info.levels_bitsize
+        context_data["power_mode_size"] = pmu_info.pms_bitsize
+
+        buf = StringIO()
+        ctx = Context(buf, **context_data)
+        mytemplate.render_context(ctx)
+        top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
+
+        # generate clock buffers
         if device.use_explicit_clock_buffers:
             mytemplate = mylookup.get_template("global_buffer_template.mako")
             context_data = {}
@@ -271,64 +293,60 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
             buf = StringIO()
             ctx = Context(buf, **context_data)
             mytemplate.render_context(ctx)
-            top_string = _insert_string(top_string, module.end(), buf.getvalue())
-
-        # generate PMU
-        mytemplate = mylookup.get_template("pmu_template.mako")
-        context_data = {}
-        context_data["pmu_type"] = device.pmu_type
-        context_data["num_clocks"] = len(pms_structure.power_domains.items())
-        context_data["sync_control"] = device.sync_control
-
-        buf = StringIO()
-        ctx = Context(buf, **context_data)
-        mytemplate.render_context(ctx)
-        top_string = _insert_string(top_string, module.end(), buf.getvalue())
+            top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
 
         # generate synchronizer for PMU
         if device.sync_control:
             if device.pmu_type == "LEVELS" or device.pmu_type == "COMBINED":
                 mytemplate = mylookup.get_template("cross_bus_template.mako")
                 context_data = {}
-                context_data["notes"] = "clkA should be PMU clock, clkB should be clock of controlling component"
+                context_data["notes"] = "clkA should be clock of controlling component, clkB should be PMU clock"
                 context_data["bus_size"] = pmu_info.pds_bitsize + pmu_info.levels_bitsize
                 context_data["cross_bus"] = "level_sync"
                 context_data["bus_out_b"] = "level_synced"
                 context_data["flag_out_b"] = "level_flag_synced"
+                context_data["generate_wires"] = False
                 buf = StringIO()
                 ctx = Context(buf, **context_data)
                 mytemplate.render_context(ctx)
-                top_string = _insert_string(top_string, module.end(), buf.getvalue())
+                top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
             if device.pmu_type == "POWER_MODES" or device.pmu_type == "COMBINED":
                 mytemplate = mylookup.get_template("cross_bus_template.mako")
                 context_data = {}
-                context_data["notes"] = "clkA should be PMU clock, clkB should be clock of controlling component"
+                context_data["notes"] = "clkA should be be clock of controlling component, clkB should be PMU clock"
                 context_data["bus_size"] = pmu_info.pms_bitsize
                 context_data["cross_bus"] = "power_sync"
                 context_data["bus_out_b"] = "power_mode_synced"
                 context_data["flag_out_b"] = "power_mode_flag_synced"
+                context_data["generate_wires"] = False
                 buf = StringIO()
                 ctx = Context(buf, **context_data)
                 mytemplate.render_context(ctx)
-                top_string = _insert_string(top_string, module.end(), buf.getvalue())
+                top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
 
         pd_position = -1
         # generate list of power_domains, to have correct number
         power_domains = list(pms_structure.power_domains.keys())
         # find signals with multiple power_domains
-        for key, value in pms_structure.signals.items():
-            if len(value) > 1:
-                # find out type of signal
-                signal_regex = re.compile(r'wire \[(\d*):\d*\].*'+key+r'.*;', re.IGNORECASE)
+        for signal, pds in pms_structure.signals.items():
+            if len(pds) > 1:
+                # find out type of signal and position
+                signal_regex = re.compile(r'(wire|reg) (\[(\d *):\d *\])?.*'+signal+r'[;,].*($)', re.IGNORECASE | re.MULTILINE)
                 signal_size = re.search(signal_regex, top_string)
                 sync_size = 0
                 if signal_size:
-                    sync_size = int(signal_size.group(1))
-                    logger.debug("Signal: %s is %d bit long", key, sync_size+1)
-                # nahradime texty
+                    # get the position of line end
+                    line_end = signal_size.end(4)
+                    if line_end > best_position:
+                        best_position = line_end
+                    if signal_size.group(3):
+                        sync_size = int(signal_size.group(3))
+                        logger.debug("Signal: %s is %d bit long", signal, sync_size+1)
+
+                # Find if the power domain has Outputing component
                 producer_pds = []
                 first_pd = None
-                for pd, components in value.items():
+                for pd, components in pds.items():
                     if not first_pd:
                         first_pd = pd
                     for component in components:
@@ -344,7 +362,8 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                     producer_pds.append(first_pd)
                     logger.debug("Fixing with first as outputing component")
                 counter = -1
-                for pd, components in value.items():
+                # Iterate over
+                for pd, components in pds.items():
                     # do not generate for outputing components
                     if pd in producer_pds:
                         continue
@@ -352,7 +371,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                     # loop through components and change output signal
                     for component in components:
                         if component[2] == "INPUT" or component[2] == "UNKNOWN":
-                            component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + key + r')(.*?\);)', re.DOTALL)
+                            component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + signal + r')(.*?\);)', re.DOTALL)
                             test = re.search(component_regex, top_string)
                             top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
                     for producer_pd in producer_pds:
@@ -361,8 +380,9 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                             # create bus
                             mytemplate = mylookup.get_template("cross_bus_template.mako")
                             context_data = {}
+                            context_data["generate_wires"] = True
                             context_data["bus_size"] = sync_size + 1
-                            context_data["cross_bus"] = key + "_" + producer_pd + "_" + pd
+                            context_data["cross_bus"] = signal + "_" + producer_pd + "_" + pd
                             pd_position = -1
                             if producer_pd in power_domains:
                                 pd_position = power_domains.index(producer_pd)
@@ -376,17 +396,18 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                                 context_data["clock_b"] = "gb_pd_clk_" + str(pd_position)
                             else:
                                 context_data["clock_b"] = "pd_clk_" + str(pd_position)
-                            context_data["bus_in_a"] = key
-                            context_data["bus_out_b"] = key + "_synced_" + str(counter)
+                            context_data["bus_in_a"] = signal
+                            context_data["bus_out_b"] = signal + "_synced_" + str(counter)
                             buf = StringIO()
                             ctx = Context(buf, **context_data)
                             mytemplate.render_context(ctx)
-                            top_string = _insert_string(top_string, module.end(), buf.getvalue())
+                            top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
                         else:
                             # just flag
                             mytemplate = mylookup.get_template("cross_flag_template.mako")
                             context_data = {}
-                            context_data["cross_flag"] = key + "_" + producer_pd + "_" + pd
+                            context_data["generate_wires"] = True
+                            context_data["cross_flag"] = signal + "_" + producer_pd + "_" + pd
                             pd_position = -1
                             if producer_pd in power_domains:
                                 pd_position = power_domains.index(producer_pd)
@@ -400,10 +421,19 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                                 context_data["clock_b"] = "gb_pd_clk_" + str(pd_position)
                             else:
                                 context_data["clock_b"] = "pd_clk_" + str(pd_position)
-                            context_data["flag_a"] = key
-                            context_data["flag_out_b"] = key + "_synced_" + str(counter)
+                            context_data["flag_a"] = signal
+                            context_data["flag_out_b"] = signal + "_synced_" + str(counter)
                             buf = StringIO()
                             ctx = Context(buf, **context_data)
                             mytemplate.render_context(ctx)
-                            top_string = _insert_string(top_string, module.end(), buf.getvalue())
+                            top_addition = _insert_string(top_addition, len(top_addition), buf.getvalue())
+        # still in module, append top_addition to best place
+        end_string = '''
+
+//---------------------------------------------------------------------------------------
+// End of auto generated components PMU + synchronizers
+//---------------------------------------------------------------------------------------
+'''
+        top_addition = _insert_string(top_addition, len(top_addition), end_string)
+        top_string = _insert_string(top_string, best_position, top_addition)
     return top_string
