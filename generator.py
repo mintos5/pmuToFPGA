@@ -324,7 +324,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                 sync_size = 0
                 if signal_size:
                     sync_size = int(signal_size.group(1))
-                    logger.debug("Signal: %s is %d bit long", key, sync_size)
+                    logger.debug("Signal: %s is %d bit long", key, sync_size+1)
                 # nahradime texty
                 producer_pds = []
                 first_pd = None
@@ -357,11 +357,11 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                             top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
                     for producer_pd in producer_pds:
                         # create sync_component
-                        if sync_size > 1:
+                        if sync_size > 0:
                             # create bus
                             mytemplate = mylookup.get_template("cross_bus_template.mako")
                             context_data = {}
-                            context_data["bus_size"] = sync_size
+                            context_data["bus_size"] = sync_size + 1
                             context_data["cross_bus"] = key + "_" + producer_pd + "_" + pd
                             pd_position = -1
                             if producer_pd in power_domains:

@@ -199,6 +199,11 @@ reg [${levels[level_num].divide_number_size-1}:0] counter_${level_num} = ${level
 ${make_tabs(tabs)}counter_${level_num} = ${levels[level_num].divide_number_size}'h0;
         % endif
     % endfor
+    % for number in range(len(levels)):
+        % if levels[number].divide_number >= 0:
+${make_tabs(tabs)}counter_reg_${number} = 1'b0;
+        % endif
+    % endfor
 </%def>\
 
 

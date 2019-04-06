@@ -144,8 +144,8 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
     if pms_structure:
         # copy sync_components
         data_folder = os.path.join(os.getcwd(), "data")
-        _test_output_cp(os.path.join(data_folder, "cross_flag_inner.v"), output_file, "power")
-        _test_output_cp(os.path.join(data_folder, "cross_bus_inner.v"), output_file, "power")
+        _test_output_cp(os.path.join(data_folder, "cross_flag.v"), output_file, "power")
+        _test_output_cp(os.path.join(data_folder, "cross_bus.v"), output_file, "power")
         _test_output_cp(os.path.join(data_folder, "pmu_tb.v"), output_file, "power")
         # generate PMU
         pmu_info = PmuInfo()

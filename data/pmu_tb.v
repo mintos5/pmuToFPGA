@@ -1,7 +1,7 @@
 `include "pmu.v"
 `timescale 1us/1us
 
-module tb_pmu;
+module pmu_tb;
 
     initial begin
         $dumpfile("pmu_tb.vcd");

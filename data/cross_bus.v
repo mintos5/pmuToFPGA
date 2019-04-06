@@ -6,21 +6,21 @@ module BusAck_CrossDomain(
     input clkB,
     input rstB,
     output FlagOut_clkB,
-    input [size:0] BusIn,
-    output[size:0] BusOut
+    input [size-1:0] BusIn,
+    output[size-1:0] BusOut
 );
 
-parameter size = 7;
+parameter size = 8;
 
-reg FlagToggle_clkA;
-reg [1:0] SyncB_clkA;
-reg [7:0] BusReg;
+reg FlagToggle_clkA = 1'b0;
+reg [1:0] SyncB_clkA = 2'b00;
+reg [size-1:0] BusReg = 'd0;
 always @(posedge rstA or posedge clkA) begin
     if (rstA) begin
         // reset
         FlagToggle_clkA <= 1'b0;
         SyncB_clkA <= 2'b00;
-        BusReg <= 8'd0;
+        BusReg <= 'd0;
 
     end
     else begin

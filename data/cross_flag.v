@@ -8,8 +8,8 @@ module FlagAck_CrossDomain(
     output FlagOut_clkB
 );
 
-reg FlagToggle_clkA;
-reg [1:0] SyncB_clkA;
+reg FlagToggle_clkA = 1'b0;
+reg [1:0] SyncB_clkA = 2'b00;
 always @(posedge rstA or posedge clkA) begin
 	if (rstA) begin
 		// reset
