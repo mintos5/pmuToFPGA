@@ -7,7 +7,7 @@ import shutil
 import analyzer
 import generator
 from structs.device import DeviceConf
-from structs.pms import PMSConf
+from structs.pms import PMSConf, PmuInfo
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,8 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
         _test_output_cp(os.path.join(data_folder, "cross_bus_inner.v"), output_file, "power")
         _test_output_cp(os.path.join(data_folder, "pmu_tb.v"), output_file, "power")
         # generate PMU
-        sio = generator.generate_pmu_verilog(pms_structure, device_conf)
+        pmu_info = PmuInfo()
+        sio = generator.generate_pmu_verilog(pms_structure, device_conf, pmu_info)
         if not output_file:
             logger.error("Missing output file [%s]", output_file)
         elif output_file is sys.stdout:
@@ -168,7 +169,7 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
             except IOError:
                 logger.error("Template file problem")
             with file_obj:
-                processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf)
+                processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf, pmu_info)
             _test_output(output_file, processed_top)
     else:
         logger.error("Can not generate")

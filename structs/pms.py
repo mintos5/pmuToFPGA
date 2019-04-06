@@ -156,3 +156,10 @@ class ComponentSet:
             self.signals = {}
         else:
             self.signals = signals
+
+
+class PmuInfo:
+    def __init__(self, levels_bitsize=0, pds_bitsize=0, pms_bitsize=0):
+        self.levels_bitsize = levels_bitsize
+        self.pds_bitsize = pds_bitsize
+        self.pms_bitsize = pms_bitsize
