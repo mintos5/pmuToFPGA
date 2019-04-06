@@ -46,7 +46,20 @@ def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
                             best_divf = divf
                             best_divq = divq
                             found_something = True
-            # todo check if is the corect or just simmiliar
+            if device.accepted_freq == 0:
+                if freq_setting.frequency != best_fout:
+                    logger.error("Can not achieve desired frequency for PLL")
+                    return False
+                else:
+                    logger.debug("Achieved desired frequency")
+            else:
+                if freq_setting.frequency - (
+                        freq_setting.frequency / device.accepted_freq) < best_fout > freq_setting.frequency + (
+                        freq_setting.frequency / device.accepted_freq):
+                    logger.debug("Achieved desired frequency for PLL in threshold")
+                else:
+                    logger.error("Can not achieve desired frequency for PLL with set threshold")
+                    return False
             freq_setting.pll = True
             freq_setting.main_freq_bool = False
             freq_setting.fout = best_fout
@@ -56,7 +69,7 @@ def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
             return True
 
 
-def get_divide_specs(freq_setting: FreqSet, input_freq):
+def get_divide_specs(freq_setting: FreqSet, device: DeviceConf, input_freq):
     if freq_setting.frequency > input_freq:
         logger.error("Output frequency is too big, fall_backing to main_clock")
         return False
@@ -64,11 +77,30 @@ def get_divide_specs(freq_setting: FreqSet, input_freq):
         quotient = input_freq/freq_setting.frequency
         # check if quotient is even
         if (quotient % 2) == 0:
-            logger.debug("quotient is OK")
+            logger.debug("quotient [%s] is OK", str(quotient))
         else:
-            logger.error("quotient is not OK")
-            # todo check if correct or just similar
-            quotient -= 1
+            if device.accepted_freq == 0:
+                logger.error("Can not achieve desired frequency for custom divider")
+                return False
+            else:
+                logger.warning("quotient [%s] is not OK", str(quotient))
+                quotient1 = quotient - (quotient % 2)
+                quotient2 = quotient + (2 - (quotient % 2))
+                if math.fabs(freq_setting.frequency - input_freq / quotient1) < math.fabs(
+                        freq_setting.frequency - input_freq / quotient2):
+                    # quotient1 is better
+                    quotient = quotient1
+                else:
+                    # quotient2 is better
+                    quotient = quotient2
+                # test resulted frequency if in threshold
+                if freq_setting.frequency - (
+                        freq_setting.frequency / device.accepted_freq) < input_freq / quotient > freq_setting.frequency + (
+                        freq_setting.frequency / device.accepted_freq):
+                    logger.debug("Achieved desired frequency for custom divider in threshold")
+                else:
+                    logger.error("Can not achieve desired frequency for custom divider with set threshold")
+                    return False
         divide_number = (quotient/2)-1
         freq_setting.main_freq_bool = False
         freq_setting.divide_number = int(divide_number)
@@ -102,14 +134,14 @@ def get_levels(pms_structure: PMSConf, device: DeviceConf):
                     pll_freq = freq.fout
                     pll_used = True
                 else:
-                    get_divide_specs(freq, device.clk_freq)
+                    get_divide_specs(freq, device, device.clk_freq)
             else:
-                if get_divide_specs(freq, device.clk_freq):
+                if get_divide_specs(freq, device, device.clk_freq):
                     pass
                 else:
                     if device.divide_pll:
                         freq.divide_from_pll = True
-                        get_divide_specs(freq, pll_freq)
+                        get_divide_specs(freq, device, pll_freq)
 
     return levels_list
 
