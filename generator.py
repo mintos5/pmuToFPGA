@@ -19,11 +19,11 @@ def _insert_string(mystring, position, chartoinsert):
 def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
     # check main_freq
     if device.clk_freq < device.pll_clk_in_min or device.clk_freq > device.pll_clk_in_max:
-        logger.error("Input frequency is out of band, fall_backing to main_clock")
+        logger.warning("Input frequency is out of band, fall_backing to main_clock")
         return False
     else:
         if freq_setting.frequency < device.pll_clk_out_min or freq_setting.frequency > device.pll_clk_out_max:
-            logger.error("Output frequency is out of band, fall_backing to main_clock")
+            logger.warning("Output frequency is out of band, fall_backing to main_clock")
             return False
         else:
             # calculate the freq

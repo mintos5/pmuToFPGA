@@ -173,7 +173,7 @@ counter_reg_${position}\
 
 <%def name="make_counter_reg()">\
     % for number in range(len(levels)):
-        % if levels[number].divide_number > 0:
+        % if levels[number].divide_number >= 0:
 reg counter_reg_${number} = 1'b0;
         % endif
     % endfor
@@ -204,8 +204,9 @@ ${make_tabs(tabs)}counter_${level_num} = ${levels[level_num].divide_number_size}
 
 <%def name="make_counting(tabs, pll_clock)">\
     % for level_num in range(len(levels)):
-        % if levels[level_num].divide_number > 0 and levels[level_num].divide_from_pll == pll_clock:
+        % if levels[level_num].divide_number >= 0 and levels[level_num].divide_from_pll == pll_clock:
             % if levels[level_num].divide_number == 0:
+
 ${make_tabs(tabs)}if (!counter_reg_${level_num}) begin
 ${make_tabs(tabs)}    counter_reg_${level_num} <= 1'b1;
 ${make_tabs(tabs)}end
@@ -213,6 +214,7 @@ ${make_tabs(tabs)}else begin
 ${make_tabs(tabs)}    counter_reg_${level_num} <= 1'b0;
 ${make_tabs(tabs)}end
             % else:
+
 ${make_tabs(tabs)}if (counter_${level_num}) begin
 ${make_tabs(tabs)}    counter_${level_num} <= counter_${level_num} - ${levels[level_num].divide_number_size}'d1;
 ${make_tabs(tabs)}end

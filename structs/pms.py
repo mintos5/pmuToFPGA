@@ -130,6 +130,7 @@ class FreqSet:
         self.main_freq_bool = main_freq
         self.zero = zero
         self.divide_from_pll = divide_from_pll
+
         self.voltage = volt_freq[0]
         self.frequency = volt_freq[1]
         self.position = 0
