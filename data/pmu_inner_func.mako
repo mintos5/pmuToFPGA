@@ -70,7 +70,8 @@ assign pll_clk = clk;
 
 <%def name="make_reconf_setter()">\
     % if ice40_reconfiguration:
-reg [2:0] reconf_setter = 3'b000;
+reg [2:0] reconf_setter = 2'b00;
+reg reconf_boot = 1'b0;
     % endif
 </%def>\
 
@@ -78,7 +79,7 @@ reg [2:0] reconf_setter = 3'b000;
 <%def name="make_warmboot()">\
     % if ice40_reconfiguration:
 SB_WARMBOOT  my_warmboot_i  (
-    .BOOT (reconf_setter[2]),
+    .BOOT (reconf_boot),
     .S1 (reconf_setter[1]),
     .S0 (reconf_setter[0])
 );
@@ -196,14 +197,19 @@ reg [${levels[level_num].divide_number_size-1}:0] counter_${level_num} = ${level
 <%def name="reset_counter(tabs, pll_clock)">\
     % for level_num in range(len(levels)):
         % if levels[level_num].divide_number > 0 and levels[level_num].divide_from_pll == pll_clock:
-${make_tabs(tabs)}counter_${level_num} = ${levels[level_num].divide_number_size}'h0;
+${make_tabs(tabs)}counter_${level_num} <= ${levels[level_num].divide_number_size}'h0;
         % endif
     % endfor
     % for number in range(len(levels)):
         % if levels[number].divide_number >= 0:
-${make_tabs(tabs)}counter_reg_${number} = 1'b0;
+${make_tabs(tabs)}counter_reg_${number} <= 1'b0;
         % endif
     % endfor
+    % if ice40_reconfiguration:
+${make_tabs(tabs)}reconf_setter <= 2'b00;
+${make_tabs(tabs)}reconf_boot <= 1'b0;
+    % endif
+
 </%def>\
 
 
@@ -297,7 +303,8 @@ ${make_tabs(tabs)}end
     % for pm_num in range(len(pms)):
 ${make_tabs(tabs)}if (change_power_mode == ${make_bits(pms_bitsize,pm_num)}) begin
     % if pm_num < 4 and ice40_confs[pm_num]:
-${make_tabs(tabs)}    reconf_setter = ${make_bits(2,pm_num)}
+${make_tabs(tabs)}    reconf_boot <= 1'b1;
+${make_tabs(tabs)}    reconf_setter <= ${make_bits(2,pm_num)};
     % else:
         % for pd_num in range(len(pds)):
             % if levels_bitsize == 1:
@@ -315,7 +322,8 @@ ${make_tabs(tabs)}end
     % for pm_num in range(len(pms)):
 ${make_tabs(tabs)}if (change_power_mode == ${make_bits(pms_bitsize,pm_num)}) begin
     % if pm_num < 4 and ice40_confs[pm_num]:
-${make_tabs(tabs)}    reconf_setter = ${make_bits(2,pm_num)}
+${make_tabs(tabs)}    reconf_boot <= 1'b1;
+${make_tabs(tabs)}    reconf_setter <= ${make_bits(2,pm_num)};
     % else:
         % for pd_num in range(len(pds)):
             % if levels_bitsize == 1:

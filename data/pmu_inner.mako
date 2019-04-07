@@ -17,6 +17,10 @@ ${pmu.make_warmboot()}
 // Generated levels
 ${pmu.make_levels_defines()}
 
+// Inner registers for divider
+${pmu.make_counter_reg()}
+${pmu.make_counters()}
+
 // Power domains registers and assigns
 % if strict_freq == True:
 ${pmu.make_strict_setters()}
@@ -26,9 +30,7 @@ ${pmu.make_setters()}
 ${pmu.make_assigns()}
 % endif
 
-// Inner registers for divider
-${pmu.make_counter_reg()}
-${pmu.make_counters()}
+// Synchronous sequential logic
 always @ (posedge clk) begin
     if (reset) begin
 ${pmu.reset_counter(2,False)}\

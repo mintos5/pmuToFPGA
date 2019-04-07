@@ -9,7 +9,11 @@ wire [${level_size-1}:0] level_synced;
     % endif
     % if pmu_type == "POWER_MODE" or pmu_type == "COMBINED":
 wire power_mode_flag_synced;
+        % if power_mode_size == 1:
+wire power_mode_synced;
+        % else:
 wire [${power_mode_size-1}:0] power_mode_synced;
+        % endif
     % endif
 % endif
 
