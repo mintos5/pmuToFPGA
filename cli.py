@@ -73,7 +73,7 @@ def _process_options(options):
     elif function == "run":
         controller.run(input_file, output_file, template_file, device_setting)
     elif function == "create":
-        controller.create(output_file)
+        controller.create_default_device(output_file)
     else:
         if options.version:
             logger.info("Version: 0.0.1")

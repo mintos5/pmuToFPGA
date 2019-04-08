@@ -171,18 +171,45 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
             with file_obj:
                 processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf, pmu_info)
             _test_output(output_file, processed_top)
+        return pms_structure
     else:
         logger.error("Can not generate")
+        return None
 
 
 def generate(input_file, output_file, template_file, device_setting):
-    generate_with_callback(input_file, output_file, template_file, device_setting, _get_pms_structure_json)
+    return generate_with_callback(input_file, output_file, template_file, device_setting, _get_pms_structure_json)
 
 
 def run(input_file, output_file, template_file, device_setting):
-    generate_with_callback(input_file, output_file, template_file, device_setting, _get_pms_structure)
+    return generate_with_callback(input_file, output_file, template_file, device_setting, _get_pms_structure)
 
 
-def create(output_file):
+def create_default_device(output_file):
     device_conf = DeviceConf()
     _test_output(output_file, device_conf.to_json(4))
+
+
+def update_device(input_file, **kwargs):
+    device_conf = load_device(input_file)
+    device_conf.update(kwargs)
+    _test_output(input_file, device_conf.to_json(4))
+
+
+def load_device(input_file):
+    device_conf = DeviceConf()
+    if not input_file:
+        logger.info("Loading PMU info with default device config")
+    else:
+        if os.path.isfile(input_file):
+            try:
+                device_obj = open(input_file, "r")
+            except IOError:
+                logger.error("FILE problem")
+            full_file = ""
+            with device_obj:
+                full_file = device_obj.read()
+            device_conf = DeviceConf.from_json(full_file)
+        else:
+            logger.warning("Device config file does not exists, loading with default info")
+    return device_conf

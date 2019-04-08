@@ -5,7 +5,7 @@ import json
 class DeviceConf:
     def __init__(self, name="dev_conf_0", clk_freq=12, device_type="ice40", use_pll=True, pmu_type="COMBINED",
                  pll_clk_in_min=10, pll_clk_in_max=133, pll_clk_out_min=16, pll_clk_out_max=275, divide_clock=True,
-                 divide_pll=False, use_explicit_clock_buffers=False, strict_freq=True, all_freq=False,
+                 divide_pll=False, use_explicit_clock_buffers=False, strict_freq=False, all_freq=False,
                  ice40_reconfiguration=True, ice40_confs=[False, False, False, False], sync_control=False,
                  accepted_freq=0):
         self.name = name
@@ -29,6 +29,10 @@ class DeviceConf:
 
     def to_json(self, indent):
         return json.dumps(self, default=convert_to_dict, indent=indent)
+
+    def update(self, newdata):
+        for key, value in newdata.items():
+            setattr(self, key, value)
 
     @staticmethod
     def from_json(json_string):

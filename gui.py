@@ -1,0 +1,181 @@
+from PyQt5 import QtWidgets
+import os
+import logging
+import sys
+
+from gui.main_window import Ui_MainWindow
+from gui.device_dialog import Ui_Dialog
+import controller
+
+logger = logging.getLogger("gui")
+
+class QPlainTextEditLogger(logging.Handler):
+    def __init__(self, q_plain_text_edit):
+        super().__init__()
+        self.widget = q_plain_text_edit
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.widget.textCursor().insertText(msg + '\n')
+
+
+class DeviceDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent=None, file_path="", file=None):
+        super().__init__(parent)
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+        self.file_path = file_path
+        self.file = file
+        self.load_file()
+        self.accepted.connect(self.accept_click)
+
+    def load_file(self):
+        if self.file:
+            device_conf = controller.load_device(os.path.join(self.file_path, self.file))
+        else:
+            device_conf = controller.load_device(None)
+        self.ui.nameLineEdit.setText(device_conf.name)
+        self.ui.mainClockdoubleSpinBox.setValue(float(device_conf.clk_freq))
+        combo_box_position = self.ui.controlTypeComboBox.findText(device_conf.pmu_type)
+        self.ui.controlTypeComboBox.setCurrentIndex(combo_box_position)
+        self.ui.synchronizeControlCheckBox.setChecked(device_conf.sync_control)
+        self.ui.usePLLCheckBox.setChecked(device_conf.use_pll)
+        self.ui.useDividerCheckBox.setChecked(device_conf.divide_clock)
+        self.ui.generateByFreqCheckBox.setChecked(not device_conf.strict_freq)
+        self.ui.assignAllFreqCheckBox.setChecked(device_conf.all_freq)
+        self.ui.freqThresholdSpinBox.setValue(float(device_conf.accepted_freq))
+        self.ui.checkBox_1.setChecked(device_conf.ice40_confs[0])
+        self.ui.checkBox_2.setChecked(device_conf.ice40_confs[1])
+        self.ui.checkBox_3.setChecked(device_conf.ice40_confs[2])
+        self.ui.checkBox_4.setChecked(device_conf.ice40_confs[3])
+
+    def accept_click(self):
+        if self.file:
+            filename = os.path.join(self.file_path, self.file)
+        else:
+            filename = os.path.join(self.file_path, self.ui.nameLineEdit.text() + ".json")
+        if self.ui.checkBox_1.isChecked() or self.ui.checkBox_2.isChecked() or self.ui.checkBox_3.isChecked() or \
+                self.ui.checkBox_4.isChecked():
+            reconfiguration = True
+            reconf_list = [self.ui.checkBox_1.isChecked(), self.ui.checkBox_2.isChecked(),
+                           self.ui.checkBox_3.isChecked(), self.ui.checkBox_4.isChecked()]
+        else:
+            reconfiguration = False
+            reconf_list = [False, False, False, False]
+        controller.update_device(filename,
+                                 clk_freq=self.ui.mainClockdoubleSpinBox.value(),
+                                 pmu_type=self.ui.controlTypeComboBox.currentText(),
+                                 sync_control=self.ui.synchronizeControlCheckBox.isChecked(),
+                                 use_pll=self.ui.usePLLCheckBox.isChecked(),
+                                 divide_clock=self.ui.useDividerCheckBox.isChecked(),
+                                 strict_freq=not self.ui.generateByFreqCheckBox.isChecked(),
+                                 all_freq=self.ui.assignAllFreqCheckBox.isChecked(),
+                                 accepted_freq=self.ui.freqThresholdSpinBox.value(),
+                                 ice40_reconfiguration=reconfiguration,
+                                 ice40_confs=reconf_list)
+
+
+class MainWindow(QtWidgets.QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.source = None
+        self.template = None
+        self.output = None
+        self.device = None
+        self.device_path = os.path.join("gui", "devices")
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+
+        # calling helper functions
+        self.import_device_jsons(self.device_path)
+        self.set_logger()
+
+        self.ui.sourcePushButton.clicked.connect(self.source_browse)
+        self.ui.destinationPushButton.clicked.connect(self.destination_browse)
+        self.ui.templatePushButton.clicked.connect(self.template_browse)
+        self.ui.addPushButton.clicked.connect(self.add_device)
+        self.ui.changePushButton.clicked.connect(self.change_device)
+
+    def import_device_jsons(self, path):
+        if os.path.isdir(path):
+            self.ui.deviceComboBox.clear()
+            if len(os.listdir(path)) > 0:
+                self.ui.deviceComboBox.addItems(os.listdir(path))
+            else:
+                # create first device config
+                controller.create_default_device(os.path.join(path, "auto_ice40.json"))
+                self.import_device_jsons(path)
+
+    def set_logger(self):
+        root = logging.getLogger()
+        root.setLevel(logging.NOTSET)
+        formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+        # get the logging level and destination
+        numeric_level = getattr(logging, self.ui.loggingComboBox.currentText().upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError('Invalid log level: %s' % self.ui.loggingComboBox.currentText())
+        qt_handler = QPlainTextEditLogger(self.ui.messagesPlainTextEdit)
+        qt_handler.setLevel(numeric_level)
+        qt_handler.setFormatter(formatter)
+        root.addHandler(qt_handler)
+
+    def source_browse(self):
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        dialog = QtWidgets.QFileDialog(self)
+        if self.ui.sourceCheckBox.isChecked():
+            dialog.setFileMode(QtWidgets.QFileDialog.Directory)
+        else:
+            dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dialog.setWindowTitle("Select source")
+        dialog.setNameFilter("All Files (*);;SystemC Files (*.cpp)")
+        dialog.setOptions(options)
+        if dialog.exec():
+            files = dialog.selectedFiles()
+            if files:
+                self.source = files[0]
+                self.ui.sourceLineEdit.setText(self.source)
+
+    def template_browse(self):
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select template", "",
+                                                  "All Files (*);;Verilog Files (*.v)", options=options)
+        if fileName:
+            self.template = fileName
+            self.ui.templateLineEdit.setText(self.template)
+
+    def destination_browse(self):
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        fileName, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Select/ Create destination", "",
+                                                  "All Files (*);;Verilog Files (*.v)", options=options)
+        if fileName:
+            self.output = fileName
+            self.ui.destinationLineEdit.setText(self.output)
+
+    def add_device(self):
+        add_device_dialog = DeviceDialog(self, self.device_path)
+        add_device_dialog.exec_()
+        self.import_device_jsons(self.device_path)
+
+    def change_device(self):
+        file = self.ui.deviceComboBox.currentText()
+        add_device_dialog = DeviceDialog(self, self.device_path, file)
+        add_device_dialog.exec_()
+
+    # todo functions for GUI buttons
+    def analyze(self):
+        pass
+
+    def generate(self):
+        pass
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication([])
+    application = MainWindow()
+    application.show()
+    sys.exit(app.exec())
