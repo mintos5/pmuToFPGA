@@ -2,7 +2,7 @@
     "__class__": "DeviceConf",
     "__module__": "structs.device",
     "name": "dev_conf_0",
-    "clk_freq": 12,
+    "clk_freq": 12.0,
     "device_type": "ice40",
     "use_pll": true,
     "pmu_type": "COMBINED",
@@ -13,15 +13,15 @@
     "divide_clock": true,
     "divide_pll": false,
     "use_explicit_clock_buffers": false,
-    "strict_freq": true,
+    "strict_freq": false,
     "all_freq": false,
-    "ice40_reconfiguration": true,
+    "ice40_reconfiguration": false,
     "ice40_confs": [
         false,
         false,
         false,
         false
     ],
-    "sync_control": false,
-    "accepted_freq": 0
+    "sync_control": true,
+    "accepted_freq": 0.1
 }

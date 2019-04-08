@@ -1,13 +1,17 @@
+from io import StringIO
 from PyQt5 import QtWidgets
+from PyQt5 import QtGui
 import os
 import logging
 import sys
 
 from gui.main_window import Ui_MainWindow
 from gui.device_dialog import Ui_Dialog
+from gui.qjsonmodel import QJsonModel
 import controller
 
 logger = logging.getLogger("gui")
+
 
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, q_plain_text_edit):
@@ -83,20 +87,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.source = None
         self.template = None
         self.output = None
-        self.device = None
         self.device_path = os.path.join("gui", "devices")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         # calling helper functions
         self.import_device_jsons(self.device_path)
+        self.qt_handler = QPlainTextEditLogger(self.ui.messagesPlainTextEdit)
         self.set_logger()
+        self.monospaced_text()
 
         self.ui.sourcePushButton.clicked.connect(self.source_browse)
         self.ui.destinationPushButton.clicked.connect(self.destination_browse)
         self.ui.templatePushButton.clicked.connect(self.template_browse)
         self.ui.addPushButton.clicked.connect(self.add_device)
         self.ui.changePushButton.clicked.connect(self.change_device)
+        self.ui.analyzePushButton.clicked.connect(self.analyze)
+        self.ui.generatePushButton.clicked.connect(self.run)
+        self.ui.loggingComboBox.currentTextChanged.connect(self.change_logger)
 
     def import_device_jsons(self, path):
         if os.path.isdir(path):
@@ -109,17 +117,31 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.import_device_jsons(path)
 
     def set_logger(self):
-        root = logging.getLogger()
-        root.setLevel(logging.NOTSET)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.NOTSET)
         formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
         # get the logging level and destination
         numeric_level = getattr(logging, self.ui.loggingComboBox.currentText().upper(), None)
         if not isinstance(numeric_level, int):
             raise ValueError('Invalid log level: %s' % self.ui.loggingComboBox.currentText())
-        qt_handler = QPlainTextEditLogger(self.ui.messagesPlainTextEdit)
-        qt_handler.setLevel(numeric_level)
-        qt_handler.setFormatter(formatter)
-        root.addHandler(qt_handler)
+        self.qt_handler.setLevel(numeric_level)
+        self.qt_handler.setFormatter(formatter)
+        root_logger.addHandler(self.qt_handler)
+
+    def change_logger(self, logger_level):
+        numeric_level = getattr(logging, logger_level.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError('Invalid log level: %s' % self.ui.loggingComboBox.currentText())
+        self.qt_handler.setLevel(numeric_level)
+
+    def monospaced_text(self):
+        # font = QtGui.QFont()
+        font = self.ui.messagesPlainTextEdit.document().defaultFont()
+        font.setFamily("Courier New")
+        font.setStyleHint(QtGui.QFont.Monospace)
+        self.ui.messagesPlainTextEdit.setFont(font)
+        # self.ui.outputTextEdit.setFont(font)
+        self.ui.outputTextEdit.setTabStopWidth(4)
 
     def source_browse(self):
         options = QtWidgets.QFileDialog.Options()
@@ -168,10 +190,64 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # todo functions for GUI buttons
     def analyze(self):
-        pass
+        if not self.source:
+            error_dialog = QtWidgets.QErrorMessage()
+            error_dialog.showMessage('Missing source file')
+            error_dialog.exec_()
+            return
+        if self.ui.outputCheckBox.isChecked():
+            sio = StringIO()
+            pms_structure = controller.analyze(self.source, sio)
+            self.ui.outputTextEdit.setText(sio.getvalue())
+        else:
+            if not self.output:
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.showMessage('Missing output file')
+                error_dialog.exec_()
+                return
+            pms_structure = controller.analyze(self.source, self.output)
 
-    def generate(self):
-        pass
+        if pms_structure:
+            model = QJsonModel()
+            self.ui.structureTreeView.setModel(model)
+            self.ui.structureTreeView.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            self.ui.structureTreeView.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+
+            model.load(pms_structure.__dict__)
+
+    def run(self):
+        if not self.source:
+            error_dialog = QtWidgets.QErrorMessage()
+            error_dialog.showMessage('Missing source file')
+            error_dialog.exec_()
+            return
+        if not self.template:
+            error_dialog = QtWidgets.QErrorMessage()
+            error_dialog.showMessage('Missing template file')
+            error_dialog.exec_()
+            return
+
+        device_path = self.ui.deviceComboBox.currentText()
+
+        if self.ui.outputCheckBox.isChecked():
+            sio = StringIO()
+            pms_structure = controller.run(self.source, sio, self.template, device_path)
+            self.ui.outputTextEdit.setText(sio.getvalue())
+        else:
+            if not self.output:
+                error_dialog = QtWidgets.QErrorMessage()
+                error_dialog.showMessage('Missing output file')
+                error_dialog.exec_()
+                return
+            pms_structure = controller.run(self.source, self.output, self.template, device_path)
+
+        if pms_structure:
+            model = QJsonModel()
+            self.ui.structureTreeView.setModel(model)
+            self.ui.structureTreeView.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            self.ui.structureTreeView.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+
+            model.load(pms_structure.__dict__)
 
 
 if __name__ == "__main__":

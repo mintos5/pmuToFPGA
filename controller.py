@@ -3,6 +3,7 @@ import sys
 import os
 import re
 import shutil
+from io import StringIO
 
 import analyzer
 import generator
@@ -17,6 +18,8 @@ def _test_output(output_file, data_out):
         logger.error("Missing output file [%s]", output_file)
     elif output_file is sys.stdout:
         sys.stdout.write(data_out)
+    elif isinstance(output_file, StringIO):
+        output_file.write(data_out)
     else:
         try:
             file_obj = open(output_file, "w+")
@@ -38,6 +41,14 @@ def _test_output_cp(file_to_copy, output_file, to_folder):
             logger.error("FILE %s can not be opened", file_to_copy)
         with file_obj:
             sys.stdout.write(file_obj.read())
+    elif isinstance(output_file, StringIO):
+        logger.info("Printing file %s to StringIO", file_to_copy)
+        try:
+            file_obj = open(file_to_copy, "r")
+        except IOError:
+            logger.error("FILE %s can not be opened", file_to_copy)
+        with file_obj:
+            output_file.write(file_obj.read())
     else:
         file_directory = os.path.dirname(output_file)
         file_directory = os.path.join(file_directory, to_folder)
@@ -120,6 +131,7 @@ def analyze(input_file, output_file):
         _test_output(output_file, pms_structure.to_json(4))
     else:
         logger.error("Can not create pms_structure")
+    return pms_structure
 
 
 def generate_with_callback(input_file, output_file, template_file, device_setting, get_pms):
@@ -154,6 +166,9 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
             logger.error("Missing output file [%s]", output_file)
         elif output_file is sys.stdout:
             logger.info("PMU to stdout")
+            _test_output(output_file, sio.getvalue())
+        elif isinstance(output_file, StringIO):
+            logger.info("PMU to StringIO")
             _test_output(output_file, sio.getvalue())
         else:
             pmu_output_file = os.path.dirname(output_file)

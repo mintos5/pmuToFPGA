@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(600, 650)
+        MainWindow.resize(800, 650)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -116,6 +116,8 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName("gridLayout")
         self.structureTreeView = QtWidgets.QTreeView(self.tab_2)
         self.structureTreeView.setObjectName("structureTreeView")
+        self.structureTreeView.header().setMinimumSectionSize(50)
+        self.structureTreeView.header().setStretchLastSection(False)
         self.gridLayout.addWidget(self.structureTreeView, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_3 = QtWidgets.QWidget()
@@ -152,7 +154,7 @@ class Ui_MainWindow(object):
         self.addPushButton.setText(_translate("MainWindow", "Add"))
         self.changePushButton.setText(_translate("MainWindow", "Change"))
         self.analyzePushButton.setText(_translate("MainWindow", "Analyze"))
-        self.generatePushButton.setText(_translate("MainWindow", "Generate"))
+        self.generatePushButton.setText(_translate("MainWindow", "Run"))
         self.outputCheckBox.setText(_translate("MainWindow", "to Output"))
         self.pushButton.setText(_translate("MainWindow", "Clear"))
         self.loggingComboBox.setItemText(0, _translate("MainWindow", "DEBUG"))
