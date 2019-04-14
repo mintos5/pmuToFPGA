@@ -8,8 +8,11 @@ from io import StringIO
 import re
 import math
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+python_file_folder = os.path.dirname(os.path.realpath(__file__))
+
 
 def _insert_string(mystring, position, chartoinsert):
     mystring = mystring[:position] + chartoinsert + mystring[position:]
@@ -17,13 +20,17 @@ def _insert_string(mystring, position, chartoinsert):
 
 
 def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
+    # check if device support pll
+    if not device.use_pll:
+        logger.warning("PLL support is disabled, fall_backing to main_clock")
+        return False
     # check main_freq
     if device.clk_freq < device.pll_clk_in_min or device.clk_freq > device.pll_clk_in_max:
-        logger.warning("Input frequency is out of band, fall_backing to main_clock")
+        logger.warning("Input frequency is out of band for PLL, fall_backing to main_clock")
         return False
     else:
         if freq_setting.frequency < device.pll_clk_out_min or freq_setting.frequency > device.pll_clk_out_max:
-            logger.warning("Output frequency is out of band, fall_backing to main_clock")
+            logger.warning("Output frequency is out of band for PLL, fall_backing to main_clock")
             return False
         else:
             # calculate the freq
@@ -71,7 +78,7 @@ def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
 
 def get_divide_specs(freq_setting: FreqSet, device: DeviceConf, input_freq):
     if freq_setting.frequency > input_freq:
-        logger.error("Output frequency is too big, fall_backing to main_clock")
+        logger.error("Output frequency is too big for divider, fall_backing to main_clock")
         return False
     else:
         quotient = input_freq/freq_setting.frequency
@@ -86,13 +93,17 @@ def get_divide_specs(freq_setting: FreqSet, device: DeviceConf, input_freq):
                 logger.warning("quotient [%s] is not OK", str(quotient))
                 quotient1 = quotient - (quotient % 2)
                 quotient2 = quotient + (2 - (quotient % 2))
-                if math.fabs(freq_setting.frequency - input_freq / quotient1) < math.fabs(
-                        freq_setting.frequency - input_freq / quotient2):
-                    # quotient1 is better
-                    quotient = quotient1
-                else:
+                if quotient1 == 0:
                     # quotient2 is better
                     quotient = quotient2
+                else:
+                    if math.fabs(freq_setting.frequency - input_freq / quotient1) < math.fabs(
+                            freq_setting.frequency - input_freq / quotient2):
+                        # quotient1 is better
+                        quotient = quotient1
+                    else:
+                        # quotient2 is better
+                        quotient = quotient2
                 # test resulted frequency if in threshold
                 if freq_setting.frequency - (
                         freq_setting.frequency / device.accepted_freq) < input_freq / quotient > freq_setting.frequency + (
@@ -133,16 +144,21 @@ def get_levels(pms_structure: PMSConf, device: DeviceConf):
                 if get_pll_specs(freq, device):
                     pll_freq = freq.fout
                     pll_used = True
-                else:
-                    get_divide_specs(freq, device, device.clk_freq)
-            else:
-                if get_divide_specs(freq, device, device.clk_freq):
-                    pass
-                else:
-                    if device.divide_pll:
+                if device.divide_clock:
+                    if get_divide_specs(freq, device, device.clk_freq):
+                        continue
+                if device.divide_pll:
+                    if get_divide_specs(freq, device, pll_freq):
                         freq.divide_from_pll = True
-                        get_divide_specs(freq, device, pll_freq)
-
+                        continue
+            else:
+                if device.divide_clock:
+                    if get_divide_specs(freq, device, device.clk_freq):
+                        continue
+                if device.divide_pll:
+                    if get_divide_specs(freq, device, pll_freq):
+                        freq.divide_from_pll = True
+                        continue
     return levels_list
 
 
@@ -241,7 +257,7 @@ def generate_pmu_verilog(pms_structure: PMSConf, device: DeviceConf, pmu_info: P
     processed_data["all_freq"] = device.all_freq
     processed_data["pmu_type"] = device.pmu_type
 
-    mylookup = TemplateLookup(directories=['data'])
+    mylookup = TemplateLookup(directories=[os.path.join(python_file_folder, "data")])
     mytemplate = mylookup.get_template("pmu_inner.mako")
     buf = StringIO()
     ctx = Context(buf, **processed_data)
@@ -270,7 +286,7 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
     if module:
         best_position = module.end()
         # generate PMU
-        mylookup = TemplateLookup(directories=['data'])
+        mylookup = TemplateLookup(directories=[os.path.join(python_file_folder, "data")])
         mytemplate = mylookup.get_template("pmu_template.mako")
         context_data = {}
         context_data["pmu_type"] = device.pmu_type

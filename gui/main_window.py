@@ -129,6 +129,14 @@ class Ui_MainWindow(object):
         self.outputTextEdit.setEnabled(False)
         self.outputTextEdit.setObjectName("outputTextEdit")
         self.verticalLayout_2.addWidget(self.outputTextEdit)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem2)
+        self.pushButton_3 = QtWidgets.QPushButton(self.tab_3)
+        self.pushButton_3.setObjectName("pushButton_3")
+        self.horizontalLayout_2.addWidget(self.pushButton_3)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.tabWidget.addTab(self.tab_3, "")
         self.verticalLayout.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -139,6 +147,7 @@ class Ui_MainWindow(object):
         self.outputCheckBox.clicked['bool'].connect(self.destinationPushButton.setDisabled)
         self.outputCheckBox.clicked['bool'].connect(self.outputTextEdit.setEnabled)
         self.pushButton.clicked.connect(self.messagesPlainTextEdit.clear)
+        self.pushButton_3.clicked.connect(self.outputTextEdit.clear)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -163,5 +172,6 @@ class Ui_MainWindow(object):
         self.loggingComboBox.setItemText(3, _translate("MainWindow", "ERROR"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "Messages"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Structure"))
+        self.pushButton_3.setText(_translate("MainWindow", "Clear"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("MainWindow", "Output"))
 

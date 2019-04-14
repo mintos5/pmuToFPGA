@@ -227,11 +227,11 @@ class MainWindow(QtWidgets.QMainWindow):
             error_dialog.exec_()
             return
 
-        device_path = self.ui.deviceComboBox.currentText()
+        device_file = self.ui.deviceComboBox.currentText()
 
         if self.ui.outputCheckBox.isChecked():
             sio = StringIO()
-            pms_structure = controller.run(self.source, sio, self.template, device_path)
+            pms_structure = controller.run(self.source, sio, self.template, os.path.join(self.device_path, device_file))
             self.ui.outputTextEdit.setText(sio.getvalue())
         else:
             if not self.output:
@@ -239,7 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 error_dialog.showMessage('Missing output file')
                 error_dialog.exec_()
                 return
-            pms_structure = controller.run(self.source, self.output, self.template, device_path)
+            pms_structure = controller.run(self.source, self.output, self.template, os.path.join(self.device_path, device_file))
 
         if pms_structure:
             model = QJsonModel()

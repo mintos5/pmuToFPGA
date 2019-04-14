@@ -31,6 +31,7 @@ ${pmu.make_assigns()}
 % endif
 
 // Synchronous sequential logic
+% if divide_clock:
 always @ (posedge clk) begin
     if (reset) begin
 ${pmu.reset_counter(2,False)}\
@@ -41,6 +42,7 @@ ${pmu.make_counting(2,False)}
 ${pmu.make_controller(2)}
     end
 end
+% endif
 
 % if divide_pll:
 always @ (posedge pll_clk) begin

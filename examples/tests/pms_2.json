@@ -1,0 +1,140 @@
+{
+    "__class__": "PMSConf",
+    "__module__": "structs.pms",
+    "name": "pms_test",
+    "levels": {
+        "NORMAL": [
+            5.0,
+            12.0
+        ],
+        "DIFF_LEVEL(1)": [
+            5.0,
+            0.18
+        ],
+        "DIFF_LEVEL(2)": [
+            5.0,
+            48.0
+        ],
+        "DIFF_LEVEL(3)": [
+            5.0,
+            24.0
+        ],
+        "HOLD": [
+            0,
+            0
+        ],
+        "OFF": [
+            0,
+            0
+        ],
+        "OFF_RET": [
+            0,
+            0
+        ]
+    },
+    "power_domains": {
+        "PD_1": [
+            [
+                "RS232"
+            ],
+            [
+                "NORMAL",
+                "DIFF_LEVEL(3)",
+                "OFF"
+            ]
+        ],
+        "PD_2": [
+            [
+                "CPU"
+            ],
+            [
+                "NORMAL",
+                "DIFF_LEVEL(1)",
+                "DIFF_LEVEL(2)",
+                "OFF"
+            ]
+        ]
+    },
+    "signals": {
+        "cpu_dout": {
+            "PD_2": [
+                [
+                    "CPU",
+                    "data_out",
+                    "OUTPUT"
+                ]
+            ],
+            "PD_1": [
+                [
+                    "RS232",
+                    "tx_byte",
+                    "INPUT"
+                ]
+            ]
+        },
+        "txValid": {
+            "PD_2": [
+                [
+                    "CPU",
+                    "virtual_tx_valid",
+                    "OUTPUT"
+                ]
+            ],
+            "PD_1": [
+                [
+                    "RS232",
+                    "transmit",
+                    "INPUT"
+                ]
+            ]
+        },
+        "rxValid": {
+            "PD_2": [
+                [
+                    "CPU",
+                    "virtual_rx_valid",
+                    "INPUT"
+                ]
+            ],
+            "PD_1": [
+                [
+                    "RS232",
+                    "received",
+                    "OUTPUT"
+                ]
+            ]
+        }
+    },
+    "components": {
+        "RS232": [
+            "PD_1",
+            "serialType"
+        ],
+        "CPU": [
+            "PD_2",
+            "cpuType"
+        ]
+    },
+    "power_modes": {
+        "on_mode": [
+            [
+                "PD_1",
+                "NORMAL"
+            ],
+            [
+                "PD_2",
+                "DIFF_LEVEL(1)"
+            ]
+        ],
+        "off_mode": [
+            [
+                "PD_1",
+                "OFF"
+            ],
+            [
+                "PD_2",
+                "OFF"
+            ]
+        ]
+    }
+}

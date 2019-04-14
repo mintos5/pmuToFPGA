@@ -15,13 +15,13 @@
     "use_explicit_clock_buffers": false,
     "strict_freq": false,
     "all_freq": false,
-    "ice40_reconfiguration": true,
+    "ice40_reconfiguration": false,
     "ice40_confs": [
-        true,
+        false,
         false,
         false,
         false
     ],
-    "sync_control": true,
-    "accepted_freq": 0.4
+    "sync_control": false,
+    "accepted_freq": 0.8
 }

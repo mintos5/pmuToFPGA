@@ -22,6 +22,6 @@
         false,
         false
     ],
-    "sync_control": true,
-    "accepted_freq": 0.4
+    "sync_control": false,
+    "accepted_freq": 0.0
 }

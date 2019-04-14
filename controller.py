@@ -155,7 +155,8 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
     pms_structure = get_pms(input_file)
     if pms_structure:
         # copy sync_components
-        data_folder = os.path.join(os.getcwd(), "data")
+        data_folder = os.path.dirname(os.path.realpath(__file__))
+        data_folder = os.path.join(data_folder, "data")
         _test_output_cp(os.path.join(data_folder, "cross_flag.v"), output_file, "power")
         _test_output_cp(os.path.join(data_folder, "cross_bus.v"), output_file, "power")
         _test_output_cp(os.path.join(data_folder, "pmu_tb.v"), output_file, "power")
@@ -184,7 +185,10 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
             except IOError:
                 logger.error("Template file problem")
             with file_obj:
-                processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf, pmu_info)
+                try:
+                    processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf, pmu_info)
+                except Exception:
+                    logger.error("Generation problem")
             _test_output(output_file, processed_top)
         return pms_structure
     else:
@@ -201,6 +205,7 @@ def run(input_file, output_file, template_file, device_setting):
 
 
 def create_default_device(output_file):
+    logger.info("Creating default device conf file for ice 40 device")
     device_conf = DeviceConf()
     _test_output(output_file, device_conf.to_json(4))
 

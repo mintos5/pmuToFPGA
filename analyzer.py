@@ -148,7 +148,6 @@ def analyze_module(module_string, pms_name, file_folder, include_files):
                         pp.Optional(symbol_func_more) + symbol_parentheses2
         power_domain_levels = parser.searchString(module_string).asList()
         # get just the first PD assigment
-        # todo aks if PD can be multiple
         power_domain_level = power_domain_levels[0]
         logger.debug("Power domain: %s has these levels: %s", pd, power_domain_level)
         power_add_component = pp.Literal(".AddComponent").suppress()
@@ -277,7 +276,11 @@ def analyze_file_obj(file_folder, file_obj, file_name):
             # call function
             pms_name = os.path.basename(file_name)
             pms_name = os.path.splitext(pms_name)[0]
-            pms = analyze_module(full_file[start_point:end_point + 1], pms_name, file_folder, _find_includes(full_file))
+            try:
+                pms = analyze_module(full_file[start_point:end_point + 1], pms_name, file_folder, _find_includes(full_file))
+            except IndexError:
+                logger.error("Problem analyzing the file %s", file_name)
+                return None
             break
     if not pms:
         logger.info("No SC_MODULE or SC_CTOR in file %s", file_name)

@@ -10,18 +10,18 @@
     "pll_clk_in_max": 133,
     "pll_clk_out_min": 16,
     "pll_clk_out_max": 275,
-    "divide_clock": true,
+    "divide_clock": false,
     "divide_pll": false,
     "use_explicit_clock_buffers": false,
     "strict_freq": false,
     "all_freq": false,
-    "ice40_reconfiguration": true,
+    "ice40_reconfiguration": false,
     "ice40_confs": [
-        true,
+        false,
         false,
         false,
         false
     ],
-    "sync_control": true,
-    "accepted_freq": 0.4
+    "sync_control": false,
+    "accepted_freq": 0.0
 }

@@ -30,7 +30,7 @@ def _process_options(options):
     # get the logging level and destination
     numeric_level = getattr(logging, options.log_mode.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: %s' % options.log_mode)
+        raise ValueError('Invalid log level: %s. Use DEBUG, INFO, WARNING, ERROR' % options.log_mode)
     if options.log:
         file_handler = logging.FileHandler(options.log)
         file_handler.setLevel(numeric_level)
@@ -56,6 +56,9 @@ def _process_options(options):
     if options.device:
         device_setting = options.device
     # what to do
+    if options.version:
+        logger.info("Version: 0.0.1")
+        sys.exit(0)
     functions = ["analyze", "generate", "run", "create"]
     function_count = 0
     function = "run"
@@ -74,10 +77,7 @@ def _process_options(options):
         controller.run(input_file, output_file, template_file, device_setting)
     elif function == "create":
         controller.create_default_device(output_file)
-    else:
-        if options.version:
-            logger.info("Version: 0.0.1")
-        sys.exit(0)
+    sys.exit(0)
 
 
 def main():
