@@ -105,9 +105,12 @@ def get_divide_specs(freq_setting: FreqSet, device: DeviceConf, input_freq):
                         # quotient2 is better
                         quotient = quotient2
                 # test resulted frequency if in threshold
-                if freq_setting.frequency - (
-                        freq_setting.frequency / device.accepted_freq) < input_freq / quotient > freq_setting.frequency + (
-                        freq_setting.frequency / device.accepted_freq):
+                var1 = freq_setting.frequency - (freq_setting.frequency / device.accepted_freq)
+                var2 = input_freq / quotient
+                var3 =freq_setting.frequency + (freq_setting.frequency / device.accepted_freq)
+                if (freq_setting.frequency - (
+                        freq_setting.frequency / device.accepted_freq)) < (input_freq / quotient) < (freq_setting.frequency + (
+                        freq_setting.frequency / device.accepted_freq)):
                     logger.debug("Achieved desired frequency for custom divider in threshold")
                 else:
                     logger.error("Can not achieve desired frequency for custom divider with set threshold")
