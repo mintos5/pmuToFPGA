@@ -13,16 +13,12 @@ SC_MODULE(Sys){
 	PowerMode off_mode;
 	cpuType CPU;
 	serialType RS232;
-    /*
-    asdasdasd
-    asdasdasd
-    */
-    //asdaasda
+
 	SC_CTOR(Sys) : CPU("CPU"), RS232("RS232"){
-		SetLevel(NORMAL, 5V, 12MHz); //blocks in normal state operate at 1V supply voltage and 50MHz operation frequency
+		SetLevel(NORMAL, 5V, 12MHz);
 		SetLevel(DIFF_LEVEL(1), 5V, 0.12MHz);
 		SetLevel(DIFF_LEVEL(2), 5V, 48MHz);
-		PD_1 = PD    (    NORMAL    , OFF); //power states assignment to PD_1
+		PD_1 = PD    (    NORMAL    , OFF);
 		PD_2 = PD (   NORMAL, DIFF_LEVEL(1), DIFF_LEVEL(2), OFF);
 		PD_1.AddComponent("RS232");
 		PD_2.AddComponent("CPU");
@@ -37,7 +33,7 @@ SC_MODULE(Sys){
 
 
 
-		on_mode = PM(NORMAL, DIFF_LEVEL(1)); //power mode specification – contains active states of power domains
+		on_mode = PM(NORMAL, DIFF_LEVEL(1));
 		off_mode = PM  (OFF, OFF);
 	}
 };

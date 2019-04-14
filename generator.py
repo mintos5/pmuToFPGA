@@ -147,6 +147,7 @@ def get_levels(pms_structure: PMSConf, device: DeviceConf):
                 if get_pll_specs(freq, device):
                     pll_freq = freq.fout
                     pll_used = True
+                    continue
                 if device.divide_clock:
                     if get_divide_specs(freq, device, device.clk_freq):
                         continue
