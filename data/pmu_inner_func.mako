@@ -226,12 +226,7 @@ ${make_tabs(tabs)}power_domain_${pd_num}_setter = ${make_bits(levels_bitsize,pms
         % if levels[level_num].divide_number >= 0 and levels[level_num].divide_from_pll == pll_clock:
             % if levels[level_num].divide_number == 0:
 
-${make_tabs(tabs)}if (!counter_reg_${level_num}) begin
-${make_tabs(tabs)}    counter_reg_${level_num} <= 1'b1;
-${make_tabs(tabs)}end
-${make_tabs(tabs)}else begin
-${make_tabs(tabs)}    counter_reg_${level_num} <= 1'b0;
-${make_tabs(tabs)}end
+${make_tabs(tabs)}counter_reg_${level_num} <= !counter_reg_${level_num};
             % else:
 
 ${make_tabs(tabs)}if (counter_${level_num}) begin
@@ -239,12 +234,7 @@ ${make_tabs(tabs)}    counter_${level_num} <= counter_${level_num} - ${levels[le
 ${make_tabs(tabs)}end
 ${make_tabs(tabs)}else begin
 ${make_tabs(tabs)}    counter_${level_num} <= ${levels[level_num].divide_number_size}'d${levels[level_num].divide_number};
-${make_tabs(tabs)}    if (!counter_reg_${level_num}) begin
-${make_tabs(tabs)}        counter_reg_${level_num} <= 1'b1;
-${make_tabs(tabs)}    end
-${make_tabs(tabs)}    else begin
-${make_tabs(tabs)}        counter_reg_${level_num} <= 1'b0;
-${make_tabs(tabs)}    end
+${make_tabs(tabs)}    counter_reg_${level_num} <= !counter_reg_${level_num};
 ${make_tabs(tabs)}end
             % endif
         % endif
