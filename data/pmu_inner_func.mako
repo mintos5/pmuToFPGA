@@ -209,7 +209,15 @@ ${make_tabs(tabs)}counter_reg_${number} <= 1'b0;
 ${make_tabs(tabs)}reconf_setter <= 2'b00;
 ${make_tabs(tabs)}reconf_boot <= 1'b0;
     % endif
-
+    % if strict_freq == True:
+        % for pd_num in range(len(pds)):
+${make_tabs(tabs)}power_domain_${pd_num}_setter = ${make_bits(pds[pd_num][1],pms[0][1][pd_num])};
+        % endfor
+    % else:
+        % for pd_num in range(len(pds)):
+${make_tabs(tabs)}power_domain_${pd_num}_setter = ${make_bits(levels_bitsize,pms[0][1][pd_num])};
+        % endfor
+    % endif
 </%def>\
 
 
