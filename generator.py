@@ -61,7 +61,7 @@ def get_pll_specs(freq_setting: FreqSet, device: DeviceConf):
                     logger.debug("Achieved desired frequency")
             else:
                 if freq_setting.frequency - (
-                        freq_setting.frequency / device.accepted_freq) < best_fout > freq_setting.frequency + (
+                        freq_setting.frequency / device.accepted_freq) < best_fout < freq_setting.frequency + (
                         freq_setting.frequency / device.accepted_freq):
                     logger.debug("Achieved desired frequency for PLL in threshold")
                 else:
