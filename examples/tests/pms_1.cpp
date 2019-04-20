@@ -4,9 +4,7 @@
 #include "rs232.h"
 
 SC_MODULE(Sys){
-	sc_signal<data> s1, s2,s3; //internal signals
-	sc_signal<data> test, cpu_dout, txValid, rxValid;
-	data BR; //state variable
+	sc_signal<data> cpu_dout, txValid, rxValid;
 	PowerDomain PD_1; //declaration of power domain PD_1
 	PowerDomain PD_2; //declaration of power domain PD_2
 	PowerMode on_mode; //declaration of power mode on_mode
@@ -15,8 +13,8 @@ SC_MODULE(Sys){
 	serialType RS232;
 
 	SC_CTOR(Sys) : CPU("CPU"), RS232("RS232"){
-		SetLevel(NORMAL, 5V, 12MHz);
-		SetLevel(DIFF_LEVEL(1), 5V, 1.2MHz);
+		SetLevel(NORMAL, 5V, 16MHz);
+		SetLevel(DIFF_LEVEL(1), 5V, 0.12MHz);
 		SetLevel(DIFF_LEVEL(2), 5V, 48MHz);
 		PD_1 = PD    (    NORMAL    , OFF);
 		PD_2 = PD (   NORMAL, DIFF_LEVEL(1), DIFF_LEVEL(2), OFF);
@@ -27,9 +25,9 @@ SC_MODULE(Sys){
 		RS232.tx_byte(cpu_dout);
 
 		CPU.virtual_tx_valid(txValid);
-		RS232.transmit(txValid)
+		RS232.transmit(txValid);
 		CPU.virtual_rx_valid(rxValid);
-		RS232.received(rxValid)
+		RS232.received(rxValid);
 
 
 

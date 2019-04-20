@@ -170,7 +170,7 @@ def analyze_module(module_string, pms_name, file_folder, include_files):
     parser = signal_name + symbol_variable + pp.Optional(symbol_variable_more)
     founded_signals = []
     for match in parser.scanString(module_string):
-        logger.debug("Found levels: %s", match[0])
+        logger.debug("Found signals: %s", match[0])
         founded_signals.extend(match[0])
 
     component_name = pp.Word(pp.alphanums + '_')
@@ -218,7 +218,7 @@ def analyze_module(module_string, pms_name, file_folder, include_files):
     parser = symbol_variable + symbol_equals + pp.Literal("PM").suppress() + symbol_parentheses1 + symbol_func + \
         pp.Optional(symbol_func_more) + symbol_parentheses2
     power_modes = parser.searchString(module_string).asList()
-    logger.debug("Found power_models: %s", power_modes)
+    logger.debug("Found power_modes: %s", power_modes)
     for power_mode in power_modes:
         counter = 1
         for pd in founded_pd:
@@ -279,7 +279,7 @@ def analyze_file_obj(file_folder, file_obj, file_name):
             try:
                 pms = analyze_module(full_file[start_point:end_point + 1], pms_name, file_folder, _find_includes(full_file))
             except IndexError:
-                logger.error("Problem analyzing the file %s", file_name)
+                logger.error("Problem analyzing the file %s, check number of levels in power_modes", file_name)
                 return None
             break
     if not pms:
