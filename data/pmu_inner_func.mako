@@ -166,7 +166,7 @@ clk\
     % if levels[position].pll:
 pll_clk\
     % endif
-        % if levels[position].divide_number > 0:
+        % if levels[position].divide_number >= 0:
 counter_reg_${position}\
     % endif
 </%def>\
@@ -201,22 +201,24 @@ ${make_tabs(tabs)}counter_${level_num} <= ${levels[level_num].divide_number_size
         % endif
     % endfor
     % for number in range(len(levels)):
-        % if levels[number].divide_number >= 0:
+        % if levels[number].divide_number >= 0 and levels[number].divide_from_pll == pll_clock:
 ${make_tabs(tabs)}counter_reg_${number} <= 1'b0;
         % endif
     % endfor
-    % if ice40_reconfiguration:
+    % if ice40_reconfiguration and pll_clock == False:
 ${make_tabs(tabs)}reconf_setter <= 2'b00;
 ${make_tabs(tabs)}reconf_boot <= 1'b0;
     % endif
-    % if strict_freq == True:
-        % for pd_num in range(len(pds)):
+    % if pll_clock == False:
+        % if strict_freq == True:
+            % for pd_num in range(len(pds)):
 ${make_tabs(tabs)}power_domain_${pd_num}_setter = ${make_bits(pds[pd_num][1],pms[0][1][pd_num])};
-        % endfor
-    % else:
-        % for pd_num in range(len(pds)):
+            % endfor
+        % else:
+            % for pd_num in range(len(pds)):
 ${make_tabs(tabs)}power_domain_${pd_num}_setter = ${make_bits(levels_bitsize,pms[0][1][pd_num])};
-        % endfor
+            % endfor
+        % endif
     % endif
 </%def>\
 

@@ -211,7 +211,7 @@ def get_combined_levels(levels, pds):
                     if levels[level_num].main_freq_bool and not levels[level_num].zero:
                         combined_levels.append((pd_num, pd_level_num, level_num))
                         continue
-                    if levels[level_num].divide_number > 0 and not levels[level_num].zero:
+                    if levels[level_num].divide_number >= 0 and not levels[level_num].zero:
                         combined_levels.append((pd_num, pd_level_num, level_num))
                         continue
     return combined_levels
