@@ -347,6 +347,16 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
         pd_position = -1
         # generate list of power_domains, to have correct number
         power_domains = list(pms_structure.power_domains.keys())
+
+        # Generate helper comment for assigning clock to component
+        pd_num = 0
+        for pd, pd_structure in pms_structure.power_domains.items():
+            logger.debug("Power domain %s has these components: %s", pd, pd_structure[0])
+            for component in pd_structure[0]:
+                component_regex = re.compile(r'(' + component + r'[\n ]*\(.*?\);)', re.DOTALL)
+                top_string = re.sub(component_regex, r'//Change clock to pd_clk_' + str(pd_num) + r' \n\1', top_string)
+            pd_num += 1
+
         # find signals with multiple power_domains
         for signal, pds in pms_structure.signals.items():
             if len(pds) > 1:
@@ -392,7 +402,6 @@ def apply_pmu(top, pms_structure: PMSConf, device: DeviceConf, pmu_info: PmuInfo
                     for component in components:
                         if component[2] == "INPUT" or component[2] == "UNKNOWN":
                             component_regex = re.compile(r'(' + component[0] + r'[\n ]*\(.*?)(' + signal + r')(.*?\);)', re.DOTALL)
-                            test = re.search(component_regex, top_string)
                             top_string = re.sub(component_regex, r'\1\2_synced_' + str(counter) + r'\3', top_string)
                     for producer_pd in producer_pds:
                         # create sync_component

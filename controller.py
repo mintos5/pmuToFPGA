@@ -187,9 +187,11 @@ def generate_with_callback(input_file, output_file, template_file, device_settin
             with file_obj:
                 try:
                     processed_top = generator.apply_pmu(file_obj, pms_structure, device_conf, pmu_info)
-                except Exception:
+                    _test_output(output_file, processed_top)
+                except Exception as err:
                     logger.error("Generation problem")
-            _test_output(output_file, processed_top)
+                    logger.error(err)
+
         return pms_structure
     else:
         logger.error("Can not generate")
